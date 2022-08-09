@@ -1,0 +1,214 @@
+package com.v2dawn.autotombstone.ui.activity
+
+import androidx.core.view.isVisible
+import com.highcapable.yukihookapi.YukiHookAPI
+import com.v2dawn.tdytombstone.databinding.ActivityAppConfigBinding
+import com.v2dawn.tdytombstone.databinding.AdapterItemAppBinding
+import com.v2dawn.tdytombstone.databinding.DiaIconFilterBinding
+import com.v2dawn.tdytombstone.model.AppItemData
+import com.v2dawn.tdytombstone.ui.activity.base.BaseActivity
+import com.v2dawn.tdytombstone.utils.factory.*
+import com.v2dawn.tdytombstone.utils.tool.SystemUITool
+
+class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
+    /** 当前筛选条件 */
+    private var filterText = ""
+
+    /** 回调适配器改变 */
+    private var onChanged: (() -> Unit)? = null
+
+    /** 回调滚动事件改变 */
+    private var onScrollEvent: ((Boolean) -> Unit)? = null
+
+    /** 全部的通知图标优化数据 */
+    private var appConfigData = ArrayList<AppItemData>()
+
+    override fun onCreate() {
+        /** 检查激活状态 */
+        if (YukiHookAPI.Status.isXposedModuleActive.not()) {
+            showDialog {
+                title = "模块没有激活"
+                msg = "模块没有激活，你无法使用这里的功能，请先激活模块。"
+                confirmButton(text = "我知道了") { finish() }
+                noCancelable()
+            }
+            return
+        }
+        /** 返回按钮点击事件 */
+        binding.titleBackIcon.setOnClickListener { onBackPressed() }
+        /** 刷新适配器结果相关 */
+        refreshAdapterResult()
+        /** 设置上下按钮点击事件 */
+        binding.configTitleUp.setOnClickListener {
+            snake(msg = "滚动到顶部")
+            onScrollEvent?.invoke(false)
+        }
+        binding.configTitleDown.setOnClickListener {
+            snake(msg = "滚动到底部")
+            onScrollEvent?.invoke(true)
+        }
+        /** 设置过滤按钮点击事件 */
+        binding.configTitleFilter.setOnClickListener {
+            showDialog<DiaIconFilterBinding> {
+                title = "按条件过滤"
+                binding.iconFiltersEdit.apply {
+                    requestFocus()
+                    invalidate()
+                    if (filterText.isNotBlank()) {
+                        setText(filterText)
+                        setSelection(filterText.length)
+                    }
+                }
+                confirmButton {
+                    if (binding.iconFiltersEdit.text.toString().isNotBlank()) {
+                        filterText = binding.iconFiltersEdit.text.toString().trim()
+                        refreshAdapterResult()
+                    } else {
+                        toast(msg = "条件不能为空")
+                        it.performClick()
+                    }
+                }
+                cancelButton()
+                if (filterText.isNotBlank())
+                    neutralButton(text = "清除条件") {
+                        filterText = ""
+                        refreshAdapterResult()
+                    }
+            }
+        }
+        /** 设置同步列表按钮点击事件 */
+        binding.configTitleSync.setOnClickListener { onStartRefresh() }
+        /** 设置列表元素和 Adapter */
+        binding.configListView.apply {
+            bindAdapter {
+                onBindDatas { iconDatas }
+                onBindViews<AdapterItemAppBinding> { binding, position ->
+                    iconDatas[position].also { bean ->
+                        binding.adpAppIcon.setImageDrawable(bean.icon)
+                        (if (bean.iconColor != 0) bean.iconColor else resources.getColor(R.color.colorTextGray)).also { color ->
+                            binding.adpAppIcon.setColorFilter(color)
+                            binding.adpAppName.setTextColor(color)
+                        }
+                        binding.adpAppName.text = bean.appName
+                        binding.adpAppPkgName.text = bean.packageName
+                        binding.adpCbrName.text = "贡献者：" + bean.contributorName
+                        isAppNotifyHookOf(bean).also { e ->
+                            binding.adpAppOpenSwitch.isChecked = e
+                            binding.adpAppAllSwitch.isEnabled = e
+                        }
+                        binding.adpAppOpenSwitch.setOnCheckedChangeListener { btn, b ->
+                            if (btn.isPressed.not()) return@setOnCheckedChangeListener
+                            putAppNotifyHookOf(bean, b)
+                            binding.adpAppAllSwitch.isEnabled = b
+                            SystemUITool.refreshSystemUI(context = this@ConfigureActivity)
+                        }
+                        binding.adpAppAllSwitch.isChecked = isAppNotifyHookAllOf(bean)
+                        binding.adpAppAllSwitch.setOnCheckedChangeListener { btn, b ->
+                            if (btn.isPressed.not()) return@setOnCheckedChangeListener
+                            fun saveState() {
+                                putAppNotifyHookAllOf(bean, b)
+                                SystemUITool.refreshSystemUI(context = this@ConfigureActivity)
+                            }
+                            if (b) showDialog {
+                                title = "全部替换"
+                                msg = "此功能仅针对严重不遵守规范的 APP 通知图标才需要开启，例如：APP 推送通知后无法识别出现的黑白块图标。\n\n" +
+                                        "此功能在一般情况下请保持关闭并跟随在线规则的配置，并不要随意改变此配置，" +
+                                        "开启后 APP 的通知图标可能会被规则破坏，你确定还要开启吗？"
+                                confirmButton { saveState() }
+                                cancelButton { btn.isChecked = btn.isChecked.not() }
+                                noCancelable()
+                            } else saveState()
+                        }
+                    }
+                }
+            }.apply {
+                setOnItemLongClickListener { _, _, p, _ ->
+                    showDialog {
+                        title = "复制“${iconDatas[p].name}”的规则"
+                        msg = "是否复制单条规则到剪贴板？"
+                        confirmButton { copyToClipboard(iconDatas[p].toString()) }
+                        cancelButton()
+                    }
+                    true
+                }
+                onChanged = { notifyDataSetChanged() }
+            }
+            onScrollEvent = { post { setSelection(if (it) iconDatas.lastIndex else 0) } }
+        }
+        /** 装载数据 */
+        mockLocalData()
+        /** 更新数据 */
+        when {
+            intent?.getBooleanExtra("isNewAppSupport", false) == true ->
+                showDialog {
+                    val appName = intent?.getStringExtra("appName") ?: ""
+                    val pkgName = intent?.getStringExtra("pkgName") ?: ""
+                    title = "新安装应用通知图标适配"
+                    msg = "你已安装 $appName($pkgName)\n\n" +
+                            "此应用未在通知优化名单中发现适配数据，若此应用发送的通知为彩色图标，" +
+                            "可随时点击本页面下方的“贡献通知图标优化名单”按钮提交贡献或请求适配。\n\n" +
+                            "若你已知晓此应用会遵守原生通知图标规范，可忽略此提示。\n\n" +
+                            "你可以现在立即同步适配列表，以获取最新的适配数据。"
+                    confirmButton(text = "同步列表") { onStartRefresh() }
+                    cancelButton(text = "复制名称+包名") { copyToClipboard(content = "$appName($pkgName)") }
+                    neutralButton(text = "取消")
+                    noCancelable()
+                }
+            intent?.getBooleanExtra("isShowUpdDialog", true) == true -> onStartRefresh()
+        }
+        /** 清除数据 */
+        intent?.apply {
+            removeExtra("isNewAppSupport")
+            removeExtra("isShowUpdDialog")
+        }
+    }
+
+    /** 开始手动同步 */
+    private fun onStartRefresh() = {}
+//        IconRuleManagerTool.syncByHand(context = this) {
+//            filterText = ""
+//            mockLocalData()
+//        }
+
+    /** 装载或刷新本地数据 */
+    private fun mockLocalData() {
+//        iconAllDatas = IconPackParams(context = this).iconDatas
+        refreshAdapterResult()
+    }
+
+    /** 刷新适配器结果相关 */
+    private fun refreshAdapterResult() {
+        onChanged?.invoke()
+        binding.configTitleCountText.text =
+            if (filterText.isBlank()) "已适配 ${iconDatas.size} 个 APP 的通知图标"
+            else "“${filterText}” 匹配到 ${iconDatas.size} 个结果"
+        binding.configListNoDataView.apply {
+            text = if (appConfigData.isEmpty()) "噫，竟然什么都没有~\n请点击右上角同步按钮获取云端数据" else "噫，竟然什么都没找到~"
+            isVisible = iconDatas.isEmpty()
+        }
+    }
+
+    /**
+     * 当前结果下的图标数组
+     * @return [Array]
+     */
+    private val iconDatas
+        get() = if (filterText.isBlank()) appConfigData
+        else appConfigData.filter {
+            it.name.lowercase().contains(filterText.lowercase()) || it.packageName.lowercase().contains(filterText.lowercase())
+        }
+
+    override fun onBackPressed() {
+        if (MainActivity.isActivityLive.not())
+            showDialog {
+                title = "提示"
+                msg = "要返回模块主页吗？"
+                confirmButton {
+                    super.onBackPressed()
+                    navigate<MainActivity>()
+                }
+                cancelButton { super.onBackPressed() }
+            }
+        else super.onBackPressed()
+    }
+}
