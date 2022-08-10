@@ -1,4 +1,4 @@
-package com.v2dawn.tdytombstone.utils.tool
+package com.v2dawn.autotombstone.utils.tool
 
 import android.content.Context
 import com.google.android.material.snackbar.Snackbar
@@ -6,8 +6,8 @@ import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.hook.factory.dataChannel
 import com.highcapable.yukihookapi.hook.param.PackageParam
 import com.highcapable.yukihookapi.hook.xposed.channel.data.ChannelData
-import com.v2dawn.tdytombstone.constants.HookConst.SYSTEMUI_PACKAGE_NAME
-import com.v2dawn.tdytombstone.utils.factory.showDialog
+import com.v2dawn.autotombstone.constants.HookConst.SYSTEMUI_PACKAGE_NAME
+import com.v2dawn.autotombstone.utils.factory.*
 
 /**
  * 系统界面工具

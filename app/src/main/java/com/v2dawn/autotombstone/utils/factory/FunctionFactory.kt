@@ -1,6 +1,6 @@
 @file:Suppress("DEPRECATION", "PrivateApi", "unused", "ObsoleteSdkInt")
 
-package com.v2dawn.tdytombstone.utils.factory
+package com.v2dawn.autotombstone.utils.factory
 
 import android.app.Activity
 import android.app.Notification
@@ -36,7 +36,7 @@ import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.highcapable.yukihookapi.hook.xposed.application.ModuleApplication.Companion.appContext
 import com.topjohnwu.superuser.Shell
-import com.v2dawn.tdytombstone.utils.factory.safeOfFalse
+import com.v2dawn.autotombstone.utils.factory.safeOfFalse
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.*

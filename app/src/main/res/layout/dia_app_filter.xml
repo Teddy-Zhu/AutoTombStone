@@ -20,5 +20,14 @@
             android:ellipsize="end"
             android:hint="可输入 APP 名称、包名"
             android:singleLine="true" />
+
+        <com.v2dawn.autotombstone.ui.view.MaterialSwitch
+            android:id="@+id/show_system_apps_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/show_sys_app"
+            android:textAllCaps="false"
+            android:textColor="@color/colorTextGray"
+            android:textSize="15sp" />
     </com.google.android.material.textfield.TextInputLayout>
 </LinearLayout>

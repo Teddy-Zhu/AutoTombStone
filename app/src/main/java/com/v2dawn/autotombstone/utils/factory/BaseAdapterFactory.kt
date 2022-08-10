@@ -1,4 +1,4 @@
-package com.v2dawn.tdytombstone.utils.factory
+package com.v2dawn.autotombstone.utils.factory
 
 import android.content.Context
 import android.view.LayoutInflater

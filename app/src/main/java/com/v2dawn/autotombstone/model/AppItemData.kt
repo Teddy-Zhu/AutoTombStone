@@ -1,4 +1,4 @@
-package com.v2dawn.tdytombstone.model;
+package com.v2dawn.autotombstone.model;
 
 import android.content.pm.ApplicationInfo;
 import android.graphics.drawable.Drawable;
@@ -12,7 +12,7 @@ data class AppItemData(
     var icon: Drawable,
 
     var enable: Boolean,
-    var priority: Integer,
+    var priority: Int = Integer.valueOf("20"),
     var isXposedModule: Boolean,
     var isSystem: Boolean,
     var isImportantSystemApp: Boolean,

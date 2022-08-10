@@ -20,7 +20,7 @@
  *
  * This file is Created by fankes on 2022/1/24.
  */
-package com.v2dawn.tdytombstone.constants
+package com.v2dawn.autotombstone.constants
 
 object HookConst {
 

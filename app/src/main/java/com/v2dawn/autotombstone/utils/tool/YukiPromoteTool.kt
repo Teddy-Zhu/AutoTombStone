@@ -20,15 +20,15 @@
  *
  * This file is Created by fankes on 2022/5/30.
  */
-package com.v2dawn.tdytombstone.utils.tool
+package com.v2dawn.autotombstone.utils.tool
 
 import android.content.Context
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.hook.factory.modulePrefs
 import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
-import com.v2dawn.tdytombstone.BuildConfig
-import com.v2dawn.tdytombstone.utils.factory.openBrowser
-import com.v2dawn.tdytombstone.utils.factory.showDialog
+import com.v2dawn.autotombstone.BuildConfig
+import com.v2dawn.autotombstone.utils.factory.openBrowser
+import com.v2dawn.autotombstone.utils.factory.showDialog
 
 /**
  * [YukiHookAPI] 的自动推广工具类

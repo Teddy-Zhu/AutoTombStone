@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package com.v2dawn.tdytombstone.utils.factory
+package com.v2dawn.autotombstone.utils.factory
 
 import com.highcapable.yukihookapi.hook.log.loggerE
 

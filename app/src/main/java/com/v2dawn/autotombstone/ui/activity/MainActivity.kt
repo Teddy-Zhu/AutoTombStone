@@ -10,10 +10,24 @@ import com.v2dawn.autotombstone.BuildConfig
 import com.v2dawn.autotombstone.R
 import com.v2dawn.autotombstone.databinding.ActivityMainBinding
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
+import com.v2dawn.autotombstone.utils.factory.navigate
 
 class MainActivity : BaseActivity<ActivityMainBinding>() {
+    companion object {
+
+        /** 窗口是否启动 */
+        internal var isActivityLive = false
+
+        /** 模块版本 */
+        private const val moduleVersion = BuildConfig.VERSION_NAME
+
+        /** 预发布的版本标识 */
+        private const val pendingFlag = ""
+    }
 
     override fun onCreate() {
+        isActivityLive = true
+
         refreshModuleStatus()
         binding.mainTextVersion.text = getString(R.string.module_version, BuildConfig.VERSION_NAME)
         binding.hideIconInLauncherSwitch.isChecked = isLauncherIconShowing.not()
@@ -21,6 +35,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             if (button.isPressed) hideOrShowLauncherIcon(isChecked)
         }
         // Your code here.
+        binding.appConfigButton.setOnClickListener {
+            navigate<AppConfigureActivity>()
+        }
     }
 
     /**

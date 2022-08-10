@@ -4,4 +4,7 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="trans">#00000000</color>
+
+    <color name="lsposed_launcher_foreground">#003549</color>
+
 </resources>

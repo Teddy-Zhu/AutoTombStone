@@ -1,6 +1,6 @@
 @file:Suppress("unused", "OPT_IN_USAGE", "EXPERIMENTAL_API_USAGE")
 
-package com.v2dawn.tdytombstone.utils.factory
+package com.v2dawn.autotombstone.utils.factory
 
 import android.app.Dialog
 import android.app.TimePickerDialog
@@ -20,7 +20,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highcapable.yukihookapi.annotation.CauseProblemsApi
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.android.LayoutInflaterClass
-import com.v2dawn.tdytombstone.factory.*
+import com.v2dawn.autotombstone.utils.factory.*
 
 /**
  * 显示时间选择对话框
