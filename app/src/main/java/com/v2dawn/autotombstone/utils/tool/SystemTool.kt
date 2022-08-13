@@ -33,9 +33,8 @@ object SystemTool {
         applicationInfoList.clear()
         val allApplicationInfoList =
             pm.getInstalledApplications(PackageManager.GET_META_DATA or PackageManager.MATCH_UNINSTALLED_PACKAGES)
-        for (appInfo in allApplicationInfoList) {
-            applicationInfoList.add(appInfo)
-        }
+        applicationInfoList.addAll(allApplicationInfoList);
+
     }
 
     fun getApps(): List<ApplicationInfo>? {

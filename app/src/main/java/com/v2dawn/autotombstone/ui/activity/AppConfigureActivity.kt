@@ -1,12 +1,14 @@
 package com.v2dawn.autotombstone.ui.activity
 
+import android.app.ActivityManager
+import android.app.ActivityManager.RunningAppProcessInfo
+import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.util.Log
 import android.view.View
-import androidx.appcompat.widget.TooltipCompat
 import androidx.core.view.isVisible
-import com.highcapable.yukihookapi.YukiHookAPI
 import com.v2dawn.autotombstone.databinding.ActivityAppConfigBinding
 import com.v2dawn.autotombstone.databinding.AdapterItemAppBinding
 import com.v2dawn.autotombstone.databinding.DiaAppFilterBinding
@@ -23,6 +25,7 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.ObservableEmitter
 import io.reactivex.rxjava3.core.ObservableOnSubscribe
 import io.reactivex.rxjava3.schedulers.Schedulers
+
 
 class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
     companion object {
@@ -53,6 +56,8 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
 //            }
 //            return
 //        }
+
+
         /** 返回按钮点击事件 */
         binding.titleBackIcon.setOnClickListener { onBackPressed() }
         /** 刷新适配器结果相关 */
@@ -95,6 +100,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                     }
             }
         }
+
         /** 设置同步列表按钮点击事件 */
         binding.configTitleSync.setOnClickListener { onStartRefresh() }
         /** 设置列表元素和 Adapter */
@@ -242,6 +248,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                 priority -= 5
             }
         }
+
         return AppItemData(
             name = label,
             label = label,
@@ -252,10 +259,21 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             icon = appInfo.loadIcon(pm),
             packageName = pkgName,
             enable = if (isSystem && !isBlackApp) true else isWhiteApp,
-            priority = priority
+            priority = priority,
         )
     }
 
+    private fun loadProcessNames(appItemData: AppItemData) {
+
+        if (appItemData.packageInfo == null) {
+            val pkgInfo=   packageManager.getPackageInfo(appItemData.packageName,PackageManager.GET_SERVICES);
+            appItemData.packageInfo = pkgInfo;
+            appItemData.processes.clear()
+            for (service in pkgInfo.services) {
+                appItemData.processes.add(service.processName);
+            }
+        }
+    }
     private fun originLabel(pm: PackageManager, applicationInfo: ApplicationInfo): String {
         val label: String = pm.getApplicationLabel(applicationInfo).toString()
         return if (label.endsWith("Application") || label.endsWith(".xml") || label.endsWith("false")) applicationInfo.packageName else label

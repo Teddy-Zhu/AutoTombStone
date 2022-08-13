@@ -136,6 +136,7 @@
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -170,14 +171,15 @@
                 android:textColor="@color/colorTextGray"
                 android:textSize="12sp" />
         </LinearLayout>
+
         <TextView
             android:id="@+id/app_config_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="13dp"
+            android:layout_marginTop="10dp"
             android:layout_marginRight="13dp"
             android:layout_marginBottom="10dp"
-            android:layout_marginTop="10dp"
             android:background="@drawable/bg_button_round"
             android:gravity="center"
             android:padding="10dp"
@@ -186,6 +188,7 @@
             android:textColor="@color/colorTextGray"
             android:textSize="15sp" />
     </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -250,7 +253,6 @@
             android:textColor="#FF5722"
             android:textSize="12sp" />
     </LinearLayout>
-
 
 
     <androidx.core.widget.NestedScrollView
