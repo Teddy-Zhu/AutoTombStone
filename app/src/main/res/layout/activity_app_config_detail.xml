@@ -8,17 +8,164 @@
     tools:context=".ui.activity.MainActivity"
     tools:ignore="ContentDescription,HardcodedText,UseCompoundDrawables">
     <LinearLayout
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:elevation="0dp"
         android:gravity="center|start"
         android:paddingLeft="15dp"
         android:paddingTop="13dp"
         android:paddingRight="15dp"
         android:paddingBottom="5dp">
-        <TextView android:layout_height="50dp" android:layout_width="100dp" android:text="aaaaa"/>
+
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/title_back_icon"
+            style="?android:attr/selectableItemBackgroundBorderless"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="20dp"
+            android:src="@mipmap/ic_back"
+            android:tint="@color/colorTextGray"
+            android:tooltipText="返回" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="2.5dp"
+            android:layout_weight="1"
+            android:gravity="center|start"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="5dp"
+                android:singleLine="true"
+                android:text="规则配置详细"
+                android:textColor="@color/colorTextGray"
+                android:textSize="19sp"
+                android:textStyle="bold" />
+
+
+        </LinearLayout>
 
     </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:elevation="0dp"
+        android:gravity="center|start"
+        android:paddingLeft="15dp"
+        android:paddingTop="10dp"
+        android:paddingRight="15dp"
+        android:orientation="horizontal"
+        android:paddingBottom="10dp">
+
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/adp_app_icon"
+            android:transitionName="app_icon"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginEnd="8dp"
+            android:src="@mipmap/ic_about" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            >
+            <TextView
+                android:layout_weight="1"
+                android:id="@+id/adp_app_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:transitionName="app_name"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:text="111"
+                android:textColor="@color/colorTextGray"
+                android:textSize="19sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/icon_content"
+                android:layout_marginTop="10dp"
+            >
+                <ImageView
+                    android:id="@+id/xp_module"
+                    android:transitionName="xp_module"
+                    android:layout_width="@dimen/app_detail_icon_size"
+                    android:layout_height="@dimen/app_detail_icon_size"
+                    android:layout_marginEnd="8dp"
+                    android:tooltipText="XP 模块"
+                    android:src="@drawable/ic_lsposed" />
+                <ImageView
+                    android:id="@+id/sys_app"
+                    android:transitionName="sys_app"
+                    android:layout_width="@dimen/app_detail_icon_size"
+                    android:layout_height="@dimen/app_detail_icon_size"
+                    android:layout_marginEnd="8dp"
+                    android:tooltipText="系统应用"
+                    android:src="@drawable/ic_android" />
+
+                <ImageView
+                    android:id="@+id/sys_imp_app"
+                    android:transitionName="sys_imp_app"
+                    android:layout_width="@dimen/app_detail_icon_size"
+                    android:layout_height="@dimen/app_detail_icon_size"
+                    android:layout_marginEnd="8dp"
+                    android:tooltipText="系统重要应用"
+                    android:src="@drawable/ic_imp_android" />
+            </LinearLayout>
+        </LinearLayout>
+
+
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:elevation="0dp"
+        android:gravity="center|start"
+        android:paddingLeft="15dp"
+        android:paddingRight="15dp">
+        <TextView
+            android:id="@+id/adp_app_pkg_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:transitionName="pkg_name"
+            android:gravity="center|start"
+            android:alpha="0.75"
+            android:singleLine="true"
+            android:text="com.xxx.xxx"
+            android:textColor="@color/colorTextDark"
+            android:textSize="16sp" />
+
+
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:elevation="0dp"
+        android:gravity="center|start"
+        android:paddingLeft="15dp"
+        android:paddingRight="15dp">
+        <com.v2dawn.autotombstone.ui.view.MaterialSwitch
+            android:id="@+id/app_white_switch"
+            android:transitionName="app_white_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:animateLayoutChanges="true"
+            android:text="@string/app_white"
+            android:textAllCaps="false"
+            android:textColor="@color/colorTextGray"
+            android:textSize="18sp" />
+    </LinearLayout>
+
 
 
 </LinearLayout>

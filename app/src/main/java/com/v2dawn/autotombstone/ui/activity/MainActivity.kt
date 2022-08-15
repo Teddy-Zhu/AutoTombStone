@@ -37,6 +37,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         // Your code here.
         binding.appConfigButton.setOnClickListener {
             navigate<AppConfigureActivity>()
+//            navigate<AppConfigureDetailActivity>()
         }
     }
 

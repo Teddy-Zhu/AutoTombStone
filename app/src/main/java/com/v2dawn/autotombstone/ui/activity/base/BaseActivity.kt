@@ -56,9 +56,12 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
          * Init children
          * 装载子类
          */
-        onCreate()
+        onCreateWrapper(savedInstanceState)
     }
 
+    open fun onCreateWrapper(savedInstanceState: Bundle?) {
+        onCreate();
+    }
     /**
      * Callback [onCreate] method
      *

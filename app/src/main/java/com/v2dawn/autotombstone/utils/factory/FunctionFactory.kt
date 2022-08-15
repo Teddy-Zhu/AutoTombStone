@@ -22,12 +22,17 @@ import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
 import android.util.Base64
+import android.util.Log
+import android.view.View
 import android.widget.Toast
+import androidx.core.app.ActivityOptionsCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
+import androidx.core.util.Pair
 import com.google.android.material.snackbar.Snackbar
 import com.highcapable.yukihookapi.hook.factory.classOf
 import com.highcapable.yukihookapi.hook.factory.field
@@ -36,8 +41,10 @@ import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.highcapable.yukihookapi.hook.xposed.application.ModuleApplication.Companion.appContext
 import com.topjohnwu.superuser.Shell
-import com.v2dawn.autotombstone.utils.factory.safeOfFalse
+import com.v2dawn.autotombstone.model.AppItemData
+import com.v2dawn.autotombstone.utils.tool.SystemTool
 import java.io.ByteArrayOutputStream
+import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -126,7 +133,8 @@ val colorOSVersion get() = "$colorOSNumberVersion ${Build.DISPLAY}"
 val colorOSNumberVersion
     get() = safeOf(default = "无法获取") {
         (classOf(name = "com.oplus.os.OplusBuild").let {
-            it.field { name = "VERSIONS" }.ignoredError().get().array<String>().takeIf { e -> e.isNotEmpty() }
+            it.field { name = "VERSIONS" }.ignoredError().get().array<String>()
+                .takeIf { e -> e.isNotEmpty() }
                 ?.get(it.method { name = "getOplusOSVERSION" }.ignoredError().get().int() - 1)
         } ?: findPropString(
             key = "ro.system.build.fingerprint", default = "无法获取"
@@ -169,7 +177,11 @@ val Context.versionCode get() = packageInfo.versionCode
  * @return [String]
  */
 fun Context.findAppName(name: String) =
-    safeOfNothing { packageManager?.getPackageInfo(name, 0)?.applicationInfo?.loadLabel(packageManager).toString() }
+    safeOfNothing {
+        packageManager?.getPackageInfo(name, 0)?.applicationInfo?.loadLabel(
+            packageManager
+        ).toString()
+    }
 
 /**
  * 得到 APP 图标
@@ -177,7 +189,12 @@ fun Context.findAppName(name: String) =
  * @return [Drawable] or null
  */
 fun Context.findAppIcon(name: String) =
-    safeOfNull { packageManager?.getPackageInfo(name, 0)?.applicationInfo?.loadIcon(packageManager) }
+    safeOfNull {
+        packageManager?.getPackageInfo(
+            name,
+            0
+        )?.applicationInfo?.loadIcon(packageManager)
+    }
 
 /**
  * 获取 APP 是否为 DEBUG 版本
@@ -185,7 +202,11 @@ fun Context.findAppIcon(name: String) =
  * @return [Boolean]
  */
 fun Context.isAppDebuggable(name: String) =
-    safeOfFalse { (packageManager?.getPackageInfo(name, 0)?.applicationInfo?.flags?.and(ApplicationInfo.FLAG_DEBUGGABLE) ?: 0) != 0 }
+    safeOfFalse {
+        (packageManager?.getPackageInfo(name, 0)?.applicationInfo?.flags?.and(
+            ApplicationInfo.FLAG_DEBUGGABLE
+        ) ?: 0) != 0
+    }
 
 /**
  * 对数值自动补零
@@ -219,7 +240,8 @@ val String.minute
  * 是否关闭了通知权限
  * @return [Boolean]
  */
-val isNotNoificationEnabled get() = !NotificationManagerCompat.from(appContext).areNotificationsEnabled()
+val isNotNoificationEnabled
+    get() = !NotificationManagerCompat.from(appContext).areNotificationsEnabled()
 
 /**
  * 网络连接是否正常
@@ -250,7 +272,8 @@ fun Number.dpFloat(context: Context) = toFloat() * context.resources.displayMetr
  */
 val Context.wallpaperColor
     get() = safeOfNan {
-        WallpaperManager.getInstance(this).getWallpaperColors(FLAG_SYSTEM)?.secondaryColor?.toArgb() ?: 0
+        WallpaperManager.getInstance(this).getWallpaperColors(FLAG_SYSTEM)?.secondaryColor?.toArgb()
+            ?: 0
     }
 
 /**
@@ -270,7 +293,8 @@ val Int.isWhite
  * @param value 透明度
  * @return [Int] 调整后的颜色
  */
-fun Int.colorAlphaOf(value: Float) = safeOfNan { (255.coerceAtMost(0.coerceAtLeast((value * 255).toInt())) shl 24) + (0x00ffffff and this) }
+fun Int.colorAlphaOf(value: Float) =
+    safeOfNan { (255.coerceAtMost(0.coerceAtLeast((value * 255).toInt())) shl 24) + (0x00ffffff and this) }
 
 /**
  * Base64 加密
@@ -344,6 +368,69 @@ fun execShell(cmd: String, isSu: Boolean = true) = safeOfNothing {
  */
 fun toast(msg: String) = Toast.makeText(appContext, msg, Toast.LENGTH_SHORT).show()
 
+
+fun buildAppItemData(
+    pm: PackageManager,
+    appInfo: ApplicationInfo,
+    sysBlackApps: List<String>,
+    whiteApps: List<String>
+): AppItemData {
+    val label: String = pm.originLabel(appInfo)
+    val pkgName: String = appInfo.packageName
+    val isSystem: Boolean = SystemTool.isSystem(appInfo)
+    val isImportSystem: Boolean = SystemTool.isImportantSystemApp(appInfo)
+    val isBlackApp: Boolean = sysBlackApps.contains(pkgName)
+    val isWhiteApp: Boolean = whiteApps.contains(pkgName)
+    var priority = 20
+    if (isSystem) {
+        if (isImportSystem) {
+            priority += 5
+        }
+        if (isBlackApp) {
+            priority -= 2
+        } else {
+            priority += 5
+        }
+
+    } else {
+        if (isWhiteApp) {
+            priority -= 5
+        }
+    }
+
+    return AppItemData(
+        name = label,
+        label = label,
+        applicationInfo = appInfo,
+        isSystem = isSystem,
+        isImportantSystemApp = isImportSystem,
+        isXposedModule = SystemTool.isXposedModule(appInfo),
+        icon = appInfo.loadIcon(pm),
+        packageName = pkgName,
+        enable = if (isSystem && !isBlackApp) true else isWhiteApp,
+        priority = priority,
+    )
+}
+
+inline fun <reified T : Activity> Activity.navigateWithTransition(
+    position: Int,
+    appItemData: AppItemData,
+    vararg viewPairs: Pair<View, String>
+) {
+    val newIntent = Intent(this, T::class.java)
+    val newBundle = Bundle();
+    newBundle.putSerializable("pkgName", appItemData.packageName)
+    newBundle.putInt("position", position)
+    newIntent.putExtras(newBundle)
+
+    Log.i("navigateWithTransition", "navigateWithTransition")
+    val bundle =
+        ActivityOptionsCompat.makeSceneTransitionAnimation(this, *viewPairs).toBundle()
+
+    Log.i("navigateWithTransition", "navigateWithTransition end")
+    startActivity(newIntent, bundle);
+}
+
 /**
  * 跳转到指定页面
  *
@@ -355,6 +442,11 @@ inline fun <reified T : Activity> Context.navigate() = runInSafe {
     })
 }
 
+fun PackageManager.originLabel(applicationInfo: ApplicationInfo): String {
+    val label: String = this.getApplicationLabel(applicationInfo).toString()
+    return if (label.endsWith("Application") || label.endsWith(".xml") || label.endsWith("false")) applicationInfo.packageName else label
+}
+
 /**
  * 弹出 [Snackbar]
  * @param msg 提示内容
@@ -362,11 +454,12 @@ inline fun <reified T : Activity> Context.navigate() = runInSafe {
  * @param callback 按钮事件回调
  */
 fun Context.snake(msg: String, actionText: String = "", callback: () -> Unit = {}) =
-    Snackbar.make((this as Activity).findViewById(android.R.id.content), msg, Snackbar.LENGTH_LONG).apply {
-        if (actionText.isBlank()) return@apply
-        setActionTextColor(if (isSystemInDarkMode) Color.BLACK else Color.WHITE)
-        setAction(actionText) { callback() }
-    }.show()
+    Snackbar.make((this as Activity).findViewById(android.R.id.content), msg, Snackbar.LENGTH_LONG)
+        .apply {
+            if (actionText.isBlank()) return@apply
+            setActionTextColor(if (isSystemInDarkMode) Color.BLACK else Color.WHITE)
+            setAction(actionText) { callback() }
+        }.show()
 
 /**
  * 启动系统浏览器
@@ -436,4 +529,5 @@ fun Long.stampToDate(format: String = "yyyy-MM-dd HH:mm:ss") =
  * @param ms 毫秒 - 默认：150
  * @param it 方法体
  */
-fun Any?.delayedRun(ms: Long = 150, it: () -> Unit) = runInSafe { Handler().postDelayed({ it() }, ms) }
+fun Any?.delayedRun(ms: Long = 150, it: () -> Unit) =
+    runInSafe { Handler().postDelayed({ it() }, ms) }

@@ -3,11 +3,16 @@ package com.v2dawn.autotombstone.ui.activity
 import android.app.ActivityManager
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.os.Bundle
 import android.util.Log
 import android.view.View
+import androidx.core.app.ActivityOptionsCompat
+import androidx.core.app.SharedElementCallback
+import androidx.core.util.Pair
 import androidx.core.view.isVisible
 import com.v2dawn.autotombstone.databinding.ActivityAppConfigBinding
 import com.v2dawn.autotombstone.databinding.AdapterItemAppBinding
@@ -29,6 +34,10 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 
 class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
     companion object {
+        fun build() {
+            TODO("Not yet implemented")
+        }
+
         const val TAG = "AppConfigureActivity"
     }
 
@@ -128,7 +137,30 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                         binding.sysApp.setOnClickListener(onClickAction)
                         binding.sysImpApp.setOnClickListener(onClickAction)
                         binding.xpModule.setOnClickListener(onClickAction)
+                        binding.appContent.setOnClickListener {
 
+                            var transitionViews = ArrayList<Pair<View, String>>().apply {
+                                add(Pair(binding.adpAppIcon, "app_icon"))
+                                add(Pair(binding.adpAppName, "app_name"))
+                                add(Pair(binding.adpAppPkgName, "pkg_name"))
+                                add(Pair(binding.appWhiteSwitch, "app_white_switch"))
+                                if (bean.isImportantSystemApp) {
+                                    add(Pair(binding.sysImpApp, "sys_imp_app"))
+                                }
+                                if (bean.isSystem) {
+                                    add(Pair(binding.sysApp, "sys_app"))
+                                }
+                                if (bean.isXposedModule) {
+                                    add(Pair(binding.xpModule, "xp_module"))
+                                }
+                            }
+
+                            this@AppConfigureActivity.navigateWithTransition<AppConfigureDetailActivity>(
+                                position,
+                                bean,
+                                *transitionViews.toTypedArray()
+                            )
+                        }
                     }
                 }
             }.apply {
@@ -148,7 +180,22 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         /** 装载数据 */
         mockLocalData(true)
 
+        setExitSharedElementCallback(object : SharedElementCallback() {
+
+            override fun onSharedElementEnd(
+                sharedElementNames: MutableList<String>?,
+                sharedElements: MutableList<View>?,
+                sharedElementSnapshots: MutableList<View>?
+            ) {
+                super.onSharedElementEnd(sharedElementNames, sharedElements, sharedElementSnapshots)
+
+                Log.i(TAG,"ddd")
+            }
+
+        })
+
     }
+
 
     /** 开始手动同步 */
     private fun onStartRefresh(force: Boolean = false) = {
@@ -201,7 +248,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
     private fun buildCache(): List<AppItemData> {
         val cache: MutableList<AppItemData> = ArrayList<AppItemData>()
         for (appInfo in getApps()!!) {
-            val viewData = build(packageManager, appInfo, ArrayList(), ArrayList())
+            val viewData = buildAppItemData(packageManager, appInfo, ArrayList(), ArrayList())
             cache.add(viewData)
         }
         cache.sortBy { it.priority }
@@ -220,63 +267,17 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         }
     }
 
-    fun build(
-        pm: PackageManager,
-        appInfo: ApplicationInfo,
-        sysBlackApps: List<String>,
-        whiteApps: List<String>
-    ): AppItemData {
-        val label: String = originLabel(pm, appInfo)
-        val pkgName: String = appInfo.packageName
-        val isSystem: Boolean = isSystem(appInfo)
-        val isImportSystem: Boolean = isImportantSystemApp(appInfo)
-        val isBlackApp: Boolean = sysBlackApps.contains(pkgName)
-        val isWhiteApp: Boolean = whiteApps.contains(pkgName)
-        var priority = 20
-        if (isSystem) {
-            if (isImportSystem) {
-                priority += 5
-            }
-            if (isBlackApp) {
-                priority -= 2
-            } else {
-                priority += 5
-            }
-
-        } else {
-            if (isWhiteApp) {
-                priority -= 5
-            }
-        }
-
-        return AppItemData(
-            name = label,
-            label = label,
-            applicationInfo = appInfo,
-            isSystem = isSystem,
-            isImportantSystemApp = isImportSystem,
-            isXposedModule = isXposedModule(appInfo),
-            icon = appInfo.loadIcon(pm),
-            packageName = pkgName,
-            enable = if (isSystem && !isBlackApp) true else isWhiteApp,
-            priority = priority,
-        )
-    }
-
     private fun loadProcessNames(appItemData: AppItemData) {
 
         if (appItemData.packageInfo == null) {
-            val pkgInfo=   packageManager.getPackageInfo(appItemData.packageName,PackageManager.GET_SERVICES);
+            val pkgInfo =
+                packageManager.getPackageInfo(appItemData.packageName, PackageManager.GET_SERVICES);
             appItemData.packageInfo = pkgInfo;
             appItemData.processes.clear()
             for (service in pkgInfo.services) {
                 appItemData.processes.add(service.processName);
             }
         }
-    }
-    private fun originLabel(pm: PackageManager, applicationInfo: ApplicationInfo): String {
-        val label: String = pm.getApplicationLabel(applicationInfo).toString()
-        return if (label.endsWith("Application") || label.endsWith(".xml") || label.endsWith("false")) applicationInfo.packageName else label
     }
 
     /**

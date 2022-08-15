@@ -64,5 +64,10 @@
             android:exported="true"
             android:screenOrientation="behind" />
 
+        <activity
+            android:name=".ui.activity.AppConfigureDetailActivity"
+            android:exported="true"
+            android:screenOrientation="behind" />
+
     </application>
 </manifest>

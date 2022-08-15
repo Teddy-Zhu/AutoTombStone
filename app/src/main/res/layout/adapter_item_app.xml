@@ -8,6 +8,7 @@
     android:descendantFocusability="blocksDescendants"
     android:gravity="center|start"
     android:orientation="horizontal"
+    android:id="@+id/app_content"
     android:padding="10dp"
     tools:ignore="HardcodedText">
 
@@ -26,6 +27,7 @@
 
             <androidx.constraintlayout.utils.widget.ImageFilterView
                 android:id="@+id/adp_app_icon"
+                android:transitionName="app_icon"
                 android:layout_width="25dp"
                 android:layout_height="25dp"
                 android:layout_marginEnd="8dp"
@@ -36,13 +38,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="10dp"
+                android:ellipsize="end"
+                android:transitionName="app_name"
                 android:singleLine="true"
-                android:text="APP 名称"
+                android:text="app"
                 android:textColor="@color/colorTextGray"
-                android:textSize="18sp" />
+                android:textSize="19sp" />
 
             <ImageView
                 android:id="@+id/xp_module"
+                android:transitionName="xp_module"
                 android:layout_width="15dp"
                 android:layout_height="15dp"
                 android:layout_marginEnd="8dp"
@@ -50,6 +55,7 @@
                 android:src="@drawable/ic_lsposed" />
             <ImageView
                 android:id="@+id/sys_app"
+                android:transitionName="sys_app"
                 android:layout_width="15dp"
                 android:layout_height="15dp"
                 android:layout_marginEnd="8dp"
@@ -58,6 +64,7 @@
 
             <ImageView
                 android:id="@+id/sys_imp_app"
+                android:transitionName="sys_imp_app"
                 android:layout_width="15dp"
                 android:layout_height="15dp"
                 android:layout_marginEnd="8dp"
@@ -73,6 +80,7 @@
             android:gravity="center|start"
             android:alpha="0.75"
             android:singleLine="true"
+            android:transitionName="pkg_name"
             android:text="com.xxx.xxx"
             android:textColor="@color/colorTextDark"
             android:textSize="16sp" />
@@ -87,9 +95,11 @@
 
         <com.v2dawn.autotombstone.ui.view.MaterialSwitch
             android:id="@+id/app_white_switch"
+            android:transitionName="app_white_switch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/app_white"
+            android:animateLayoutChanges="true"
             android:textAllCaps="false"
             android:textColor="@color/colorTextGray"
             android:textSize="15sp" />
