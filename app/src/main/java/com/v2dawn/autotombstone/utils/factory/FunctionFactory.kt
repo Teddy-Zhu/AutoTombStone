@@ -373,7 +373,8 @@ fun buildAppItemData(
     pm: PackageManager,
     appInfo: ApplicationInfo,
     sysBlackApps: List<String>,
-    whiteApps: List<String>
+    whiteApps: List<String>,
+    appItemData: AppItemData? = null
 ): AppItemData {
     val label: String = pm.originLabel(appInfo)
     val pkgName: String = appInfo.packageName
@@ -398,18 +399,34 @@ fun buildAppItemData(
         }
     }
 
-    return AppItemData(
-        name = label,
-        label = label,
-        applicationInfo = appInfo,
-        isSystem = isSystem,
-        isImportantSystemApp = isImportSystem,
-        isXposedModule = SystemTool.isXposedModule(appInfo),
-        icon = appInfo.loadIcon(pm),
-        packageName = pkgName,
-        enable = if (isSystem && !isBlackApp) true else isWhiteApp,
-        priority = priority,
-    )
+    if (appItemData == null) {
+        return AppItemData(
+            name = label,
+            label = label,
+            applicationInfo = appInfo,
+            isSystem = isSystem,
+            isImportantSystemApp = isImportSystem,
+            isXposedModule = SystemTool.isXposedModule(appInfo),
+            icon = appInfo.loadIcon(pm),
+            packageName = pkgName,
+            enable = if (isSystem && !isBlackApp) true else isWhiteApp,
+            priority = priority,
+        )
+    } else {
+        appItemData.name = label
+        appItemData.label = label
+        appItemData.applicationInfo = appInfo
+        appItemData.isSystem = isSystem
+        appItemData.isImportantSystemApp = isImportSystem
+        appItemData.isXposedModule = SystemTool.isXposedModule(appInfo)
+        appItemData.icon = appInfo.loadIcon(pm)
+        appItemData.packageName = pkgName
+        appItemData.enable = if (isSystem && !isBlackApp) true else isWhiteApp
+        appItemData.priority = priority
+        return appItemData
+    }
+
+
 }
 
 inline fun <reified T : Activity> Activity.navigateWithTransition(

@@ -10,10 +10,12 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.BaseAdapter
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.app.SharedElementCallback
 import androidx.core.util.Pair
 import androidx.core.view.isVisible
+import com.highcapable.yukihookapi.YukiHookAPI
 import com.v2dawn.autotombstone.databinding.ActivityAppConfigBinding
 import com.v2dawn.autotombstone.databinding.AdapterItemAppBinding
 import com.v2dawn.autotombstone.databinding.DiaAppFilterBinding
@@ -56,15 +58,14 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
 
     override fun onCreate() {
         /** 检查激活状态 */
-//        if (YukiHookAPI.Status.isXposedModuleActive.not()) {
-//            showDialog {
-//                title = "模块没有激活"
-//                msg = "模块没有激活，你无法使用这里的功能，请先激活模块。"
-//                confirmButton(text = "我知道了") { finish() }
-//                noCancelable()
-//            }
-//            return
-//        }
+        if (YukiHookAPI.Status.isXposedModuleActive.not()) {
+            showDialog {
+                title = "模块没有激活"
+                msg = "模块没有激活，你的修改暂时无法生效，请先激活模块。"
+                confirmButton(text = "我知道了") { finish() }
+                noCancelable()
+            }
+        }
 
 
         /** 返回按钮点击事件 */
@@ -188,14 +189,39 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                 sharedElementSnapshots: MutableList<View>?
             ) {
                 super.onSharedElementEnd(sharedElementNames, sharedElements, sharedElementSnapshots)
-
-                Log.i(TAG,"ddd")
+                if (transitionBack != null) {
+                    val position = transitionBack.getIntExtra("position", -1)
+                    if (position != -1) {
+                        // data
+                        updateListData(position)
+                    }
+                }
+                Log.i(TAG, "ddd")
             }
 
         })
-
     }
 
+    private fun updateListData(position: Int) {
+
+
+        buildAppItemData(
+            packageManager,
+            appFilteredData[position].applicationInfo,
+            ArrayList(),
+            ArrayList(),
+            appFilteredData[position]
+        )
+//        (binding.configListView.adapter as BaseAdapter).notifyDataSetChanged()
+    }
+
+    private lateinit var transitionBack: Intent;
+    override fun onActivityReenter(resultCode: Int, data: Intent?) {
+        if (RESULT_OK == resultCode && data != null) {
+            transitionBack = data
+        }
+        super.onActivityReenter(resultCode, data)
+    }
 
     /** 开始手动同步 */
     private fun onStartRefresh(force: Boolean = false) = {

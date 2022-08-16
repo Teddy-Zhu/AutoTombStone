@@ -35,6 +35,8 @@ class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>(
             ArrayList()
         )
 
+        binding.titleBackIcon.setOnClickListener { onBackPressed() }
+
         binding.adpAppIcon.setImageDrawable(appItemData.icon)
 
         binding.adpAppName.text = appItemData.name
@@ -66,10 +68,14 @@ class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>(
     }
 
 
-    override fun onBackPressed() {
+    override fun finishAfterTransition() {
         val data = Intent()
         data.putExtra("position", position)
         setResult(RESULT_OK, data)
+        super.finishAfterTransition()
+    }
+
+    override fun onBackPressed() {
         ActivityCompat.finishAfterTransition(this);
         super.onBackPressed()
     }
