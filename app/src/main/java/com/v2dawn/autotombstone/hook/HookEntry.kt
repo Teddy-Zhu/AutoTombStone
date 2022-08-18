@@ -3,7 +3,11 @@ package com.v2dawn.autotombstone.hook
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
 import com.highcapable.yukihookapi.hook.factory.configs
 import com.highcapable.yukihookapi.hook.factory.encase
+import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
+import com.v2dawn.autotombstone.BuildConfig
+import com.v2dawn.autotombstone.hook.tombstone.hook.Android
+import com.v2dawn.autotombstone.hook.tombstone.yuki.YukiHookModulePrefsEnhance
 
 @InjectYukiHookWithXposed(entryClassName = "AutoTombStone")
 class HookEntry : IYukiHookXposedInit {
@@ -20,7 +24,20 @@ class HookEntry : IYukiHookXposedInit {
     }
 
     override fun onHook() = encase {
-        // Your code here.
-        prefs
+        loadHooker(Android)
+
+        loadApp(name = BuildConfig.APPLICATION_ID){
+
+            "com.v2dawn.autotombstone.hook.tombstone.yuki.YukiHookModulePrefsEnhance"
+                .clazz.field {
+                    name="isXposedEnvironment"
+                }.get()
+            YukiHookModulePrefsEnhance.clazz
+            YukiHookModulePrefsEnhance.javaClass.hook {
+                injectMember {
+
+                }
+            }
+        }
     }
 }
