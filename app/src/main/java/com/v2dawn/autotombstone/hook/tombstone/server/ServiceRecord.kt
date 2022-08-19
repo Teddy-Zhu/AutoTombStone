@@ -6,7 +6,7 @@ import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 import de.robv.android.xposed.XposedHelpers;
 
 
-class ServiceRecord(private val serviceRecord: Any) {
+class ServiceRecord(val serviceRecord: Any) {
     val isForeground: Boolean =
         serviceRecord.javaClass.field {
             name = "isForeground"

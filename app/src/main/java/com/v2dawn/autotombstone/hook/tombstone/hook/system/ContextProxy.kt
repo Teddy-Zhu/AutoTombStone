@@ -4,11 +4,13 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.os.Binder;
 import android.os.UserHandle
+import com.highcapable.yukihookapi.hook.factory.field
 import de.robv.android.xposed.XposedHelpers
 
 class ContextProxy(base: Context?, private val tag: String) : ContextWrapper(base) {
-    private val PER_USER_RANGE =
-        XposedHelpers.getStaticIntField(UserHandle::class.java, "PER_USER_RANGE")
+    private val PER_USER_RANGE = UserHandle::class.java.field {
+        name = "PER_USER_RANGE"
+    }.get().int()
 
     override fun enforceCallingPermission(permission: String, message: String?) {
         val callingUid = Binder.getCallingUid().toLong()

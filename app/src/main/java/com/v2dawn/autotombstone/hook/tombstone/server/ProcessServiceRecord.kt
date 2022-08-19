@@ -1,12 +1,13 @@
 package com.v2dawn.autotombstone.hook.tombstone.server;
 
 import com.highcapable.yukihookapi.hook.factory.field
+import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import de.robv.android.xposed.XposedHelpers
 
 
 class ProcessServiceRecord(val processServiceRecord: Any) {
     val mExecutingServices: MutableList<ServiceRecord> = ArrayList()
-    val mServices: MutableList<ServiceRecord> = ArrayList()
+    public val mServices: MutableList<ServiceRecord> = ArrayList()
     val mConnections: MutableList<ConnectionRecord> = ArrayList()
     private var mHasForegroundServices = false
 
@@ -40,7 +41,7 @@ class ProcessServiceRecord(val processServiceRecord: Any) {
     }
 
     init {
-        if ("com.android.server.am.ServiceRecord" == processServiceRecord.javaClass.name) {
+        if (ClassEnum.ServiceRecordClass == processServiceRecord.javaClass.name) {
             mServices.add(ServiceRecord(processServiceRecord))
         } else {
             mHasForegroundServices = processServiceRecord.javaClass.field {

@@ -24,7 +24,7 @@ class ActivityManagerService(
 
     val processList: ProcessList;
     val context: Context;
-    private val activeServices: ActiveServices;
+    public val activeServices: ActiveServices;
 
     init {
         processList = ProcessList(

@@ -17,6 +17,8 @@ import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.Event
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
+import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XposedHelpers
 
 object AppStateChangeHook : YukiBaseHooker() {
     private val ACTIVITY_RESUMED: Int =
@@ -129,7 +131,21 @@ object AppStateChangeHook : YukiBaseHooker() {
         }
         // for overlay ui & notification
         loggerI(msg = "hook app notification remove & overlay closed")
-
+        ClassEnum.ActivityManagerServiceClass
+            .hook {
+                injectMember {
+                    method {
+                        name = "setHasOverlayUi"
+                        param(IntType, Boolean::class.javaPrimitiveType!!)
+                    }
+                    afterHook {
+                        val hasOverlayUi = args(1).boolean()
+                        val pid = args(0).int()
+                        loggerD(msg = "set pid :$pid hasOverlayUi:$hasOverlayUi")
+                        appStateChangeExecutor.execute(pid, hasOverlayUi)
+                    }
+                }
+            }
 
     }
 

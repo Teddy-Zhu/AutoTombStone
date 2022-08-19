@@ -13,7 +13,7 @@ class ProcessRecord(val processRecord: Any) {
     val processName: String?
     val userId: Int
     val applicationInfo: ApplicationInfo?
-    private val processServiceRecords: MutableList<ProcessServiceRecord> = ArrayList()
+    public val processServiceRecords: MutableList<ProcessServiceRecord> = ArrayList()
 
 
     fun setCurAdj(curAdj: Int) {
