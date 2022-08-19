@@ -62,7 +62,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             showDialog {
                 title = "模块没有激活"
                 msg = "模块没有激活，你的修改暂时无法生效，请先激活模块。"
-                confirmButton(text = "我知道了") { finish() }
+                confirmButton(text = "我知道了") { cancel() }
                 noCancelable()
             }
         }

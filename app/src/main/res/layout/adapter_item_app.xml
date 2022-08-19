@@ -51,7 +51,7 @@
                 android:layout_width="15dp"
                 android:layout_height="15dp"
                 android:layout_marginEnd="8dp"
-                android:tooltipText="XP 模块"
+                android:tooltipText="Xposed 模块"
                 android:src="@drawable/ic_lsposed" />
             <ImageView
                 android:id="@+id/sys_app"
