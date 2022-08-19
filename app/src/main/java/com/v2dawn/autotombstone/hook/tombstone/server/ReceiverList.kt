@@ -1,18 +1,38 @@
 package com.v2dawn.autotombstone.hook.tombstone.server;
 
+import com.highcapable.yukihookapi.hook.factory.field
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 import de.robv.android.xposed.XposedHelpers;
+import java.io.File
 
 
 class ReceiverList(private val receiverList: Any) {
-    private var processRecord: ProcessRecord? = null
+    public var processRecord: ProcessRecord? = null
     fun clear() {
-        XposedHelpers.setObjectField(receiverList, FieldEnum.app, null)
+        receiverList.javaClass
+            .field { name = FieldEnum.appField }
+            .get(processRecord).set(null)
+    }
+
+    fun restore(app: Any?) {
+        receiverList.javaClass
+            .field { name = FieldEnum.appField }
+            .get(processRecord).set(app)
+    }
+
+    fun isNull(): Boolean {
+        return processRecord == null
     }
 
     init {
         try {
-            processRecord = ProcessRecord(XposedHelpers.getObjectField(receiverList, FieldEnum.app))
+            val raw = receiverList.javaClass.field {
+                name = FieldEnum.appField
+            }.get(receiverList).cast<Any>()
+            raw?.let {
+                processRecord =
+                    ProcessRecord(raw)
+            }
         } catch (ignored: Exception) {
         }
     }

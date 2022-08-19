@@ -31,7 +31,7 @@ object ANRHook : YukiBaseHooker() {
         if (isSystem && isNotBlackSystem || processRecord.userId != ActivityManagerService.MAIN_USER) {
             return false
         }
-        loggerD(msg = "Keep " + (processRecord.processName ?: packageName))
+        loggerD(msg = "Keep ${(processRecord.processName ?: packageName)}")
         // 不处理
         return true
     }

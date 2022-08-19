@@ -1,35 +1,41 @@
 package com.v2dawn.autotombstone.hook.tombstone.server;
 
+import com.highcapable.yukihookapi.hook.factory.field
+import com.highcapable.yukihookapi.hook.factory.method
+import com.highcapable.yukihookapi.hook.param.PackageParam
+import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
-import de.robv.android.xposed.XposedHelpers
 import java.util.*
 
 
 class ProcessList(private val processList: Any) {
     private val mutex = Any()
-    private val processRecords = Collections.synchronizedList(ArrayList<ProcessRecord>())
-    fun reloadProcessRecord() {
+    public val processRecords = Collections.synchronizedList(ArrayList<ProcessRecord>())
+    public fun reloadProcessRecord() {
         try {
             processRecords.clear()
-            val processRecordList = XposedHelpers.getObjectField(
-                processList, FieldEnum.mLruProcesses
-            ) as kotlin.collections.List<*>
+            val processRecordList = processList.javaClass.field {
+                name = FieldEnum.mLruProcessesField
+            }.get(processList).list<Any>()
             for (proc in processRecordList) {
-                val processRecord = ProcessRecord(proc!!)
-                processRecords.add(processRecord)
+                processRecords.add(ProcessRecord(proc))
             }
         } catch (ignored: Exception) {
         }
     }
 
     companion object {
-        fun setOomAdj(classLoader: ClassLoader?, pid: Int, uid: Int, oomAdj: Int) {
-            val ProcessList = XposedHelpers.findClass(ClassEnum.ProcessList, classLoader)
-            XposedHelpers.callStaticMethod(ProcessList, MethodEnum.setOomAdj, pid, uid, oomAdj)
+        fun setOomAdj(pid: Int, uid: Int, oomAdj: Int) {
+            ClassEnum.ProcessListClass.javaClass.method {
+                name = MethodEnum.setOomAdj
+                param(IntType, IntType, IntType)
+            }.get().call(pid, uid, oomAdj)
         }
+
     }
+
 
     init {
         reloadProcessRecord()

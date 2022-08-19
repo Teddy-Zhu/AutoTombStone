@@ -1,6 +1,9 @@
 package com.v2dawn.autotombstone.hook.tombstone.server;
 
 import android.os.Build
+import com.highcapable.yukihookapi.hook.factory.field
+import com.highcapable.yukihookapi.hook.param.PackageParam
+import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 import de.robv.android.xposed.XposedHelpers
 
@@ -14,7 +17,10 @@ class ProcessRecord(val processRecord: Any) {
 
 
     fun setCurAdj(curAdj: Int) {
-        XposedHelpers.setIntField(processRecord, FieldEnum.curAdj, curAdj)
+        processRecord.javaClass
+            .field {
+                name = FieldEnum.curAdjField
+            }.get(processRecord).set(curAdj)
     }
 
     override fun toString(): String {
@@ -30,16 +36,25 @@ class ProcessRecord(val processRecord: Any) {
 
     init {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            pid = XposedHelpers.getIntField(processRecord, FieldEnum.mPidField)
+
+            pid = processRecord.javaClass.field { name = FieldEnum.mPidField }
+                .get(processRecord).int()
         } else {
-            pid = XposedHelpers.getIntField(processRecord, FieldEnum.pidField)
+            pid = processRecord.javaClass.field { name = FieldEnum.pidField }
+                .get(processRecord).int()
         }
-        uid = XposedHelpers.getIntField(processRecord, FieldEnum.uidField)
-        processName = XposedHelpers.getObjectField(processRecord, FieldEnum.processNameField) as String
-        userId = XposedHelpers.getIntField(processRecord, FieldEnum.userIdField)
+        uid = processRecord.javaClass.field { name = FieldEnum.uidField }
+            .get(processRecord).int()
+        processName = processRecord.javaClass.field { name = FieldEnum.processNameField }
+            .get(processRecord).string()
+
+        userId = processRecord.javaClass.field { name = FieldEnum.userIdField }
+            .get(processRecord).int()
         applicationInfo =
-            ApplicationInfo(XposedHelpers.getObjectField(processRecord, FieldEnum.infoField))
-        val ms = XposedHelpers.getObjectField(processRecord, FieldEnum.mServicesField)
+            ApplicationInfo(processRecord.javaClass.field { name = FieldEnum.infoField }
+                .get(processRecord))
+        val ms = processRecord.javaClass.field { name = FieldEnum.mServicesField }
+            .get(processRecord).cast<Any>()!!
         processServiceRecords.clear()
         if (ms is Collection<*>) {
             for (o in ms) {

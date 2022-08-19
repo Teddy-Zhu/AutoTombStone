@@ -19,4 +19,9 @@ object MethodEnum {
     const val clearAppWhenScreenOffTimeOutInNight = "clearAppWhenScreenOffTimeOutInNight"
     const val clearAppWhenScreenOffTimeOut = "clearAppWhenScreenOffTimeOut"
     const val clearUnactiveApps = "clearUnactiveApps"
+    const val setMode = "setMode"
+    const val setAppInactive = "setAppInactive"
+    const val getAppStandbyBucket = "getAppStandbyBucket"
+    const val setAppStandbyBucket = "setAppStandbyBucket"
+    const val makePackageIdle = "makePackageIdle"
 }

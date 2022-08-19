@@ -469,7 +469,7 @@ class Stat : ProcFile {
 
     companion object {
         @Throws(IOException::class)
-        operator fun get(pid: Int): Stat {
+        fun get(pid: Int): Stat {
             return Stat(String.format("/proc/%d/stat", pid))
         }
 

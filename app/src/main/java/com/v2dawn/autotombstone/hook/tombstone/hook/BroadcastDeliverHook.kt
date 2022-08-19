@@ -1,83 +1,115 @@
 package com.v2dawn.autotombstone.hook.tombstone.hook;
 
-import cn.myflv.android.noactive.entity.FieldEnum
-import cn.myflv.android.noactive.entity.MemData
-import cn.myflv.android.noactive.server.ActivityManagerService
-import cn.myflv.android.noactive.server.ApplicationInfo
-import cn.myflv.android.noactive.server.BroadcastFilter
-import cn.myflv.android.noactive.server.ProcessRecord
-import cn.myflv.android.noactive.server.ReceiverList
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedHelpers
+import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
+import com.highcapable.yukihookapi.hook.log.loggerD
+import com.highcapable.yukihookapi.hook.param.HookParam
+import com.highcapable.yukihookapi.hook.type.java.IntType
+import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
+import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
+import com.v2dawn.autotombstone.hook.tombstone.server.BroadcastFilter
+import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryBlackSysAppsList
+import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryWhiteAppList
+import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryWhiteProcessesList
+import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
 
-class BroadcastDeliverHook(memData: MemData) : XC_MethodHook() {
-    private val memData: MemData
-    @Throws(Throwable::class)
-    public override fun beforeHookedMethod(param: MethodHookParam) {
-        val args = param.args
-        if (args[1] == null) {
-            return
+object BroadcastDeliverHook : YukiBaseHooker() {
+
+    fun myReplaceMethod(param: HookParam): Any? {
+        val arg1 = param.args(1).any() ?: return null
+
+        val broadcastFilter = BroadcastFilter(arg1)
+
+        val receiverList = broadcastFilter.receiverList
+
+        if (broadcastFilter.receiverList == null || broadcastFilter.receiverList!!.isNull()) {
+            return null
         }
-        val broadcastFilter = BroadcastFilter(args[1])
-        val receiverList: ReceiverList = broadcastFilter.getReceiverList() ?: return
         // 如果广播为空就不处理
-        val processRecord: ProcessRecord = receiverList.getProcessRecord()
+        val processRecord = receiverList?.processRecord
         // 如果进程或者应用信息为空就不处理
-        if (processRecord == null || processRecord.getApplicationInfo() == null) {
-            return
+        if (processRecord == null || processRecord.applicationInfo == null) {
+            return null
         }
-        if (processRecord.getUserId() !== ActivityManagerService.MAIN_USER) {
-            return
+        if (processRecord.userId != ActivityManagerService.MAIN_USER) {
+            return null
         }
-        val applicationInfo: ApplicationInfo = processRecord.getApplicationInfo()
-        val packageName: String = processRecord.getApplicationInfo().getPackageName() ?: return
+        val applicationInfo = processRecord.applicationInfo
+        val packageName: String = processRecord.applicationInfo.packageName ?: return null
         // 如果包名为空就不处理(猜测系统进程可能为空)
-        val processName: String = processRecord.getProcessName()
+        val processName: String = processRecord.processName ?: return null
         // 如果进程名称不是包名开头就跳过
         if (!processName.startsWith(packageName)) {
-            return
+            return null
         }
         // 如果是系统应用并且不是系统黑名单就不处理
-        if (applicationInfo.getUid() < 10000 || applicationInfo.isSystem() && !memData.getBlackSystemApps()
+        if (applicationInfo.uid < 10000 || applicationInfo.isSystem && !queryBlackSysAppsList()
                 .contains(packageName)
         ) {
-            return
+            return null
         }
         // 如果是前台应用就不处理
-        if (!memData.getAppBackgroundSet().contains(packageName)) {
-            return
+        if (!AppStateChangeExecutor.backgroundApps.contains(packageName)) {
+            return null
         }
         // 如果白名单应用或者进程就不处理
-        if (memData.getWhiteApps().contains(packageName) || memData.getWhiteProcessList()
+        if (queryWhiteAppList().contains(packageName) || queryWhiteProcessesList()
                 .contains(processName)
         ) {
-            return
+            return null
         }
         // 暂存
-        val app: Any = processRecord.getProcessRecord()
-        param.setObjectExtra(FieldEnum.app, app)
-        loggerD(processRecord.getProcessName().toString() + " clear broadcast".also { msg = it })
+        val app: Any = processRecord.processRecord
+
+        loggerD(msg = "${processRecord.processName.toString()}  clear broadcast")
         // 清楚广播
-        receiverList.clear()
+        receiverList?.clear()
+
+        return app
     }
 
-    @Throws(Throwable::class)
-    override fun afterHookedMethod(param: MethodHookParam) {
-        super.afterHookedMethod(param)
+    fun afterHookedMethod(param: HookParam, app: Any?) {
 
-        // 获取进程
-        val app = param.getObjectExtra(FieldEnum.app) ?: return
-        val args = param.args
-        if (args[1] == null) {
+        if (app == null) {
             return
         }
-        val receiverList = XposedHelpers.getObjectField(args[1], FieldEnum.receiverList)
-            ?: return
-        // 还原修改
-        XposedHelpers.setObjectField(receiverList, FieldEnum.app, app)
+        val arg1 = param.args(1).any() ?: return
+
+        // 获取进程
+        if (arg1 == null) {
+            return
+        }
+
+        val broadcastFilter = BroadcastFilter(arg1)
+        if (broadcastFilter.receiverList != null) {
+            broadcastFilter.receiverList!!.restore(app)
+        } else {
+            return
+        }
+
     }
 
-    init {
-        this.memData = memData
+
+    override fun onHook() {
+        // Hook 广播分发
+        ClassEnum.BroadcastQueueClass.hook {
+            injectMember {
+                method {
+                    name = MethodEnum.deliverToRegisteredReceiverLocked
+                    param(
+                        ClassEnum.BroadcastRecordClass, ClassEnum.BroadcastFilterClass,
+                        Boolean::class.javaPrimitiveType!!,
+                        IntType
+                    )
+                }
+                var app: Any? = null
+                beforeHook {
+                    app = myReplaceMethod(this)
+                }
+                afterHook {
+                    afterHookedMethod(this, app)
+                }
+            }
+        }
     }
 }

@@ -5,28 +5,46 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.pm.PackageManager.NameNotFoundException
+import com.highcapable.yukihookapi.hook.factory.field
+import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.loggerD
+import com.highcapable.yukihookapi.hook.param.PackageParam
+import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
-import de.robv.android.xposed.XposedHelpers
-import java.lang.reflect.InvocationTargetException
 
 
-class ActivityManagerService(private val activityManagerService: Any) {
-    private val processList: ProcessList = ProcessList(
-        XposedHelpers.getObjectField(
-            activityManagerService,
-            FieldEnum.mProcessList
+class ActivityManagerService(
+    val activityManagerService: Any
+) {
+    companion object {
+        const val MAIN_USER = 0
+    }
+
+    val processList: ProcessList;
+    val context: Context;
+    private val activeServices: ActiveServices;
+
+    init {
+        processList = ProcessList(
+            activityManagerService.javaClass
+                .field {
+                    name = FieldEnum.mProcessListField
+                }.get(activityManagerService).cast<Any>()!!
         )
-    )
-    private val activeServices: ActiveServices = ActiveServices(
-        XposedHelpers.getObjectField(
-            activityManagerService,
-            FieldEnum.mServices
+
+        activeServices = ActiveServices(
+            activityManagerService.javaClass
+                .field {
+                    name = FieldEnum.mServicesField
+                }.get(activityManagerService).cast<Any>()!!
         )
-    )
-    private val context: Context = XposedHelpers.getObjectField(activityManagerService, FieldEnum.mContext) as Context
+        context = activityManagerService.javaClass.field {
+            name = FieldEnum.mContextField
+        }.get(activityManagerService).cast<Context>()!!
+    }
+
 
     fun isAppForeground(packageName: String): Boolean {
         val applicationInfo = getApplicationInfo(packageName) ?: return true
@@ -36,17 +54,17 @@ class ActivityManagerService(private val activityManagerService: Any) {
             clazz = clazz.superclass
         }
         if (clazz == null || clazz.name != ClassEnum.ActivityManagerServiceClass) {
-            loggerD(msg="super activityManagerService is not found")
+            loggerD(msg = "super activityManagerService is not found")
             return true
         }
         try {
-            return XposedHelpers.findMethodBestMatch(clazz, MethodEnum.isAppForeground, uid).invoke(
-                activityManagerService, uid
-            ) as Boolean
-        } catch (e: IllegalAccessException) {
-            loggerD(msg="call isAppForeground method error")
-        } catch (e: InvocationTargetException) {
-            loggerD(msg="call isAppForeground method error")
+            return activityManagerService.javaClass
+                .method {
+                    name = MethodEnum.isAppForeground
+                    param(IntType)
+                }.get(activityManagerService).invoke<Boolean>(activityManagerService, uid)!!
+        } catch (e: Exception) {
+            loggerD(msg = "call isAppForeground method error")
         }
         return true
     }
@@ -69,13 +87,10 @@ class ActivityManagerService(private val activityManagerService: Any) {
                 PackageManager.GET_UNINSTALLED_PACKAGES
             )
         } catch (e: NameNotFoundException) {
-            loggerD(msg="$packageName not found")
+            loggerD(msg = "$packageName not found")
         }
         return null
     }
 
-    companion object {
-        const val MAIN_USER = 0
-    }
 
 }

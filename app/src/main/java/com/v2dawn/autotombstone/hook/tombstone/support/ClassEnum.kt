@@ -2,6 +2,7 @@ package com.v2dawn.autotombstone.hook.tombstone.support;
 
 object ClassEnum {
 
+    const val AppOpsServiceClass = "com.android.server.appop.AppOpsService"
     const val NotificationUsageStatsClass = "com.android.server.notification.NotificationUsageStats"
     const val ActivityManagerServiceClass = "com.android.server.am.ActivityManagerService"
     const val UsageStatsServiceClass = "com.android.server.usage.UsageStatsService"
@@ -21,4 +22,6 @@ object ClassEnum {
     const val ProcessListClass = "com.android.server.am.ProcessList"
     const val PowerStateMachineClass = "com.miui.powerkeeper.statemachine.PowerStateMachine"
     const val ProcessClass = "android.os.Process"
+
+    const val ActiveServicesClass = "com.android.server.am.ActiveServices"
 }

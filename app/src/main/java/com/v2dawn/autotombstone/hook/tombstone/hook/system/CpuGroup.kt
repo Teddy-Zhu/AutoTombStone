@@ -3,7 +3,7 @@ package com.v2dawn.autotombstone.hook.tombstone.hook.system;
 import java.io.IOException;
 
 class CpuGroup protected constructor(path: String?) : ProcFile(path) {
-    val isForeground: Boolean
+    public val isForeground: Boolean
         get() = !content!!.contains("background")
 
     companion object {
