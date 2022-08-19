@@ -440,11 +440,9 @@ inline fun <reified T : Activity> Activity.navigateWithTransition(
     newBundle.putInt("position", position)
     newIntent.putExtras(newBundle)
 
-    loggerI(msg="navigateWithTransition", "navigateWithTransition")
     val bundle =
         ActivityOptionsCompat.makeSceneTransitionAnimation(this, *viewPairs).toBundle()
 
-    loggerI(msg="navigateWithTransition", "navigateWithTransition end")
     startActivity(newIntent, bundle);
 }
 

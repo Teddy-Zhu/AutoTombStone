@@ -13,7 +13,7 @@ class ApplicationInfo(applicationInfo: Any) {
     val flags: Int
     val uid: Int
     val processName: String?
-    val packageName: String?
+    val packageName: String
     val isSystem: Boolean
         get() = isSystem(this)
 
@@ -36,7 +36,7 @@ class ApplicationInfo(applicationInfo: Any) {
         }.get(applicationInfo).cast()
         packageName = applicationInfo.javaClass.field {
             name = FieldEnum.packageNameField
-        }.get(applicationInfo).cast()
+        }.get(applicationInfo).cast()!!
     }
 
     override fun toString(): String {

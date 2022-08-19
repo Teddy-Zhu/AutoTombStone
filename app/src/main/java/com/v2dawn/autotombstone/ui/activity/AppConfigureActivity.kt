@@ -196,7 +196,6 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                         updateListData(position)
                     }
                 }
-                loggerI(msg=TAG, "ddd")
             }
 
         })
