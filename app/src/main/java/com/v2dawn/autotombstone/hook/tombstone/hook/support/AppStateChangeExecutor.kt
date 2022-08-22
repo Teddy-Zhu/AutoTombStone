@@ -50,7 +50,8 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
     private val context: Context
     private val processList: ProcessList
     private val appOpsService: Any
-//    private val mUsageStatsService: Any
+
+    //    private val mUsageStatsService: Any
     private val activityManagerService: ActivityManagerService
 
     private var usm: IUsageStatsManager
@@ -60,9 +61,15 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
     private var useOriginMethod = true
 
     companion object {
+
+        public val RELOAD_TASK_PREFIX = "reload_task:"
+
+        public var instance: AppStateChangeExecutor? = null
+
         public val backgroundApps = hashSetOf<String>()
 
         const val DELAY_TIME: Long = 5000
+        const val TASK_RELOAD_DELAY: Long = 3000
         private val SYS_SUPPORTS_SCHEDGROUPS = File("/dev/cpuctl/tasks").exists()
         private var OP_WAKE_LOCK = 40
         private var STANDBY_BUCKET_NEVER = 50
@@ -83,6 +90,26 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
             return total
         }
 
+    }
+
+
+    public fun reloadConfig(name: String) {
+        val fullName = RELOAD_TASK_PREFIX + name
+        synchronized(fullName.intern()) {
+            var timer = timerMap.getOrDefault(fullName, null)
+
+            if (timer != null) {
+                timer.cancel()
+                timer = null
+            }
+            timer = Timer()
+            timer.schedule(object : TimerTask() {
+                override fun run() {
+                    queue.put(fullName)
+                }
+            }, TASK_RELOAD_DELAY)
+            timerMap[fullName] = timer
+        }
     }
 
     public fun execute(pid: Int, hasOverlayUi: Boolean): Boolean {
@@ -138,7 +165,17 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
         while (true) {
             try {
                 val pkg = queue.take()
-                check(pkg)
+
+                if (pkg.startsWith(RELOAD_TASK_PREFIX)) {
+                    val configName = pkg.removePrefix(RELOAD_TASK_PREFIX)
+                    loggerD(msg = "reload config ${configName}")
+                    packageParam.apply {
+                        prefsInstance(configName).reload()
+                    }
+                } else {
+                    check(pkg)
+                }
+
             } catch (eex: Exception) {
                 loggerE(msg = "task exe error", e = eex)
             }
@@ -208,7 +245,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
     }
 
     private fun getTargetProcessPid(packageName: String): Int {
-        synchronized(processList.processRecords){
+        synchronized(processList.processRecords) {
             for (processRecord in processList.processRecords) {
                 // 如果包名和事件的包名不同就不处理
                 if (packageName == processRecord.processName) {
@@ -554,12 +591,15 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
 //        IUsageStatsManager
         try {
 
-            usm = IUsageStatsManager.Stub.asInterface(
-                ClassEnum.ServiceManagerClass.javaClass.method {
-                    name = "getService"
-                    param(StringType)
-                }.get().invoke<IBinder>(Context.USAGE_STATS_SERVICE)
-            )
+            packageParam.apply {
+                usm = IUsageStatsManager.Stub.asInterface(
+                    ClassEnum.ServiceManagerClass.clazz.method {
+                        name = "getService"
+                        param(StringType)
+                    }.get().invoke<IBinder>(Context.USAGE_STATS_SERVICE)
+                )
+            }
+
         } catch (e: ClassNotFoundException) {
             loggerE(msg = "", e = e)
             usm =

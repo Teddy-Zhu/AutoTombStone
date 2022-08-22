@@ -80,6 +80,7 @@ object OomAdjHook :
             }
             Android_Q_R -> processRecord.setCurAdj(finalCurlAdj)
             Color -> ProcessList.setOomAdj(
+                this,
                 processRecord.pid,
                 processRecord.uid,
                 finalCurlAdj

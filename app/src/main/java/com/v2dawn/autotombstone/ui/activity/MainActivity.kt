@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.core.view.isVisible
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.hook.factory.modulePrefs
@@ -18,6 +19,7 @@ import com.v2dawn.autotombstone.utils.factory.navigate
 
 class MainActivity : BaseActivity<ActivityMainBinding>() {
     companion object {
+        const val TAG = "MainActivity"
 
         /** 窗口是否启动 */
         internal var isActivityLive = false
@@ -28,6 +30,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         /** 预发布的版本标识 */
         private const val pendingFlag = ""
     }
+
+    private val prefsListeners =
+        hashMapOf<String, SharedPreferences.OnSharedPreferenceChangeListener>()
 
     override fun onCreate() {
         isActivityLive = true
@@ -40,14 +45,41 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
         // Your code here.
         binding.appConfigButton.setOnClickListener {
+            val dictChars = mutableListOf<Char>().apply {
+                "123456789zxcvbnmasdfghjklqwertyuiop".forEach {
+                    this.add(it)
+                }
+            }
+            val randomStr =
+                StringBuilder().apply { (1..((10..30).random())).onEach { append(dictChars.random()) } }
+            Log.d(TAG, "randomStr:$randomStr")
+            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.TEST_RANDOM, randomStr.toString())
             navigate<AppConfigureActivity>()
 //            navigate<AppConfigureDetailActivity>()
         }
 //
-//        getPrefs(ConfigConst.COMMON_NAME)
-//            .registerOnSharedPreferenceChangeListener { prefs, key ->
-//
-//            }
+
+        val confs = ArrayList<String>().apply {
+            add(ConfigConst.COMMON_NAME)
+            add(ConfigConst.WHITE_APPS_NAME)
+            add(ConfigConst.WHITE_APP_PROCESSES_NAME)
+            add(ConfigConst.BLACK_SYSTEM_APPS_NAME)
+            add(ConfigConst.KILL_APP_PROCESS_NAME)
+        }
+        for (conf in confs) {
+            val l1: SharedPreferences.OnSharedPreferenceChangeListener =
+                SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences: SharedPreferences, s: String ->
+                    prefChange(conf, s)
+                }
+
+            prefsListeners[conf] = l1
+            getPrefs(conf).registerOnSharedPreferenceChangeListener(l1)
+        }
+
+    }
+
+    private fun prefChange(name: String, key: String) {
+        Log.d(TAG, "pref change $name , $key")
     }
 
     private fun getPrefs(prefsName: String): SharedPreferences {
@@ -58,6 +90,13 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             return getSharedPreferences(prefsName, Context.MODE_PRIVATE)
                 ?: error("If you want to use module prefs, you must set the context instance first")
         }
+    }
+
+    override fun onDestroy() {
+        for (entry in prefsListeners.entries) {
+            getPrefs(entry.key).unregisterOnSharedPreferenceChangeListener(entry.value)
+        }
+        super.onDestroy()
     }
 
     /**

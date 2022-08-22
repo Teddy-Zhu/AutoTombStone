@@ -9,6 +9,7 @@ object ConfigConst {
 //    val ENABLE_MODULE = PrefsData("_enable_module", true)
     val ENABLE_MODULE_LOG = PrefsData("_enable_module_log", false)
     val ENABLE_HIDE_ICON = PrefsData("_hide_icon", false)
+    val TEST_RANDOM = PrefsData("random", "default")
 
     val COMMON_NAME = "common"
     val ENABLE_FREEEZER_V2 = PrefsData("freezerV2", false)

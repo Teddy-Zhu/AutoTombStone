@@ -269,15 +269,14 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
 
     private fun refreshAppList(showSystem: Boolean, force: Boolean) {
 
-        Observable.create(
-            ObservableOnSubscribe { emitter: ObservableEmitter<List<AppItemData>> ->
-                loadApplicationInfos(packageManager, force)
-                val blackApps = getBlackApps()
-                val whiteApps = getWhiteApps()
-                val data: List<AppItemData> = buildCache(blackApps, whiteApps)
-                emitter.onNext(data)
-                emitter.onComplete()
-            } as ObservableOnSubscribe<List<AppItemData>>)
+        Observable.create { emitter: ObservableEmitter<List<AppItemData>> ->
+            loadApplicationInfos(packageManager, force)
+            val blackApps = getBlackApps()
+            val whiteApps = getWhiteApps()
+            val data: List<AppItemData> = buildCache(blackApps, whiteApps)
+            emitter.onNext(data)
+            emitter.onComplete()
+        }
             .subscribeOn(Schedulers.newThread())
             .observeOn(AndroidSchedulers.mainThread())
             .doOnError { throwable: Throwable? ->

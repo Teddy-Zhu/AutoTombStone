@@ -27,11 +27,14 @@ class ProcessList(private val processList: Any) {
     }
 
     companion object {
-        fun setOomAdj(pid: Int, uid: Int, oomAdj: Int) {
-            ClassEnum.ProcessListClass.javaClass.method {
-                name = MethodEnum.setOomAdj
-                param(IntType, IntType, IntType)
-            }.get().call(pid, uid, oomAdj)
+        fun setOomAdj(packageParam: PackageParam, pid: Int, uid: Int, oomAdj: Int) {
+            packageParam.apply {
+                ClassEnum.ProcessListClass.clazz.method {
+                    name = MethodEnum.setOomAdj
+                    param(IntType, IntType, IntType)
+                }.get().call(pid, uid, oomAdj)
+            }
+
         }
 
     }

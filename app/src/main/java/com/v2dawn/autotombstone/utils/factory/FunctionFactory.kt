@@ -37,6 +37,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.highcapable.yukihookapi.hook.factory.*
 import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.highcapable.yukihookapi.hook.xposed.application.ModuleApplication.Companion.appContext
+import com.highcapable.yukihookapi.hook.xposed.prefs.YukiHookModulePrefs
 import com.topjohnwu.superuser.Shell
 import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.model.AppItemData
@@ -626,3 +627,8 @@ fun Long.stampToDate(format: String = "yyyy-MM-dd HH:mm:ss") =
  */
 fun Any?.delayedRun(ms: Long = 150, it: () -> Unit) =
     runInSafe { Handler().postDelayed({ it() }, ms) }
+
+
+fun YukiHookModulePrefs.reload(){
+    isXSharePrefsReadable
+}

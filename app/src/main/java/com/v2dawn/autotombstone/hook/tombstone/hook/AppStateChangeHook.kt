@@ -69,7 +69,7 @@ object AppStateChangeHook : YukiBaseHooker() {
 
                     val appStateChangeExecutor =
                         AppStateChangeExecutor(this@AppStateChangeHook, instance)
-
+                    AppStateChangeExecutor.instance = appStateChangeExecutor
                     hookOther(appStateChangeExecutor)
                 }
             }
