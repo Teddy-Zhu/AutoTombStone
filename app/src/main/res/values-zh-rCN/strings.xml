@@ -15,5 +15,9 @@
     <string name="app_white">启用</string>
     <string name="show_sys_app">显示系统App</string>
     <string name="func_desc">全自动墓碑App,支持音源,浮窗</string>
+    <string name="imp_sys_app_not_support">重要系统应用不能暂不支持黑名单</string>
+    <string name="ignore_process">忽略</string>
+    <string name="force_process">强制停止</string>
+    <string name="follow_process">跟随App</string>
 
 </resources>

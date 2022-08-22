@@ -34,14 +34,13 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
 import androidx.core.util.Pair
 import com.google.android.material.snackbar.Snackbar
-import com.highcapable.yukihookapi.hook.factory.classOf
-import com.highcapable.yukihookapi.hook.factory.field
-import com.highcapable.yukihookapi.hook.factory.hasClass
-import com.highcapable.yukihookapi.hook.factory.method
+import com.highcapable.yukihookapi.hook.factory.*
 import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.highcapable.yukihookapi.hook.xposed.application.ModuleApplication.Companion.appContext
 import com.topjohnwu.superuser.Shell
+import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.model.AppItemData
+import com.v2dawn.autotombstone.ui.view.MaterialSwitch
 import com.v2dawn.autotombstone.utils.tool.SystemTool
 import java.io.ByteArrayOutputStream
 import java.io.Serializable
@@ -368,12 +367,93 @@ fun execShell(cmd: String, isSu: Boolean = true) = safeOfNothing {
  */
 fun toast(msg: String) = Toast.makeText(appContext, msg, Toast.LENGTH_SHORT).show()
 
+fun Context.updateBlackApps(packageName: String, isChecked: Boolean): Boolean {
+    val blackApps = getBlackApps()
+    if (isChecked) {
+        //white
+        val newBlackApps = blackApps.minus(packageName)
+        if (newBlackApps.size != blackApps.size) {
+            setBlackApps(newBlackApps)
+            return true
+        }
+    } else {
+        val newBlackApps = blackApps.plus(packageName)
+        if (newBlackApps.size != blackApps.size) {
+            setBlackApps(newBlackApps)
+            return true
+        }
+    }
+
+    return false
+}
+
+fun Context.updateWhiteApps(packageName: String, isChecked: Boolean): Boolean {
+    val whiteApps = getWhiteApps()
+
+    if (isChecked) {
+        //white
+        val newWhiteApps = whiteApps.plus(packageName)
+        if (newWhiteApps.size != whiteApps.size) {
+            setWhiteApps(newWhiteApps)
+            return true
+        }
+    } else {
+        val newWhiteApps = whiteApps.minus(packageName)
+        if (newWhiteApps.size != whiteApps.size) {
+            setWhiteApps(newWhiteApps)
+            return true
+        }
+    }
+    return false
+}
+
+
+fun Context.getBlackApps(): Set<String> {
+    return modulePrefs(ConfigConst.BLACK_SYSTEM_APPS_NAME)
+        .get(ConfigConst.BLACK_SYSTEM_APPS)
+}
+
+fun Context.getWhiteApps(): Set<String> {
+    return modulePrefs(ConfigConst.WHITE_APPS_NAME)
+        .get(ConfigConst.WHITE_APPS)
+}
+
+fun Context.getWhiteProcesses(): Set<String> {
+    return modulePrefs(ConfigConst.WHITE_APP_PROCESSES_NAME)
+        .get(ConfigConst.WHITE_APP_PROCESSES)
+}
+
+fun Context.getKillProcesses(): Set<String> {
+    return modulePrefs(ConfigConst.KILL_APP_PROCESS_NAME)
+        .get(ConfigConst.KILL_APP_PROCESS)
+}
+
+fun Context.setBlackApps(blackApps: Set<String>) {
+    modulePrefs(ConfigConst.BLACK_SYSTEM_APPS_NAME)
+        .put(ConfigConst.BLACK_SYSTEM_APPS, blackApps)
+}
+
+fun Context.setWhiteApps(whiteApps: Set<String>) {
+    modulePrefs(ConfigConst.WHITE_APPS_NAME)
+        .put(ConfigConst.WHITE_APPS, whiteApps)
+}
+
+fun Context.setWhiteProcesses(whiteProcesses: Set<String>) {
+    modulePrefs(ConfigConst.WHITE_APP_PROCESSES_NAME)
+        .put(ConfigConst.WHITE_APP_PROCESSES, whiteProcesses)
+}
+
+fun Context.setKillProcesses(killProcesses: Set<String>) {
+    modulePrefs(ConfigConst.KILL_APP_PROCESS_NAME)
+        .put(ConfigConst.KILL_APP_PROCESS, killProcesses)
+}
+
 
 fun buildAppItemData(
     pm: PackageManager,
     appInfo: ApplicationInfo,
-    sysBlackApps: List<String>,
-    whiteApps: List<String>,
+    sysBlackApps: Set<String>,
+    whiteApps: Set<String>,
     appItemData: AppItemData? = null
 ): AppItemData {
     val label: String = pm.originLabel(appInfo)

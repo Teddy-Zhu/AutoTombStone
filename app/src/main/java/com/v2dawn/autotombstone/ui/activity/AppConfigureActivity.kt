@@ -16,6 +16,9 @@ import androidx.core.app.SharedElementCallback
 import androidx.core.util.Pair
 import androidx.core.view.isVisible
 import com.highcapable.yukihookapi.YukiHookAPI
+import com.highcapable.yukihookapi.hook.factory.modulePrefs
+import com.v2dawn.autotombstone.R
+import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.databinding.ActivityAppConfigBinding
 import com.v2dawn.autotombstone.databinding.AdapterItemAppBinding
 import com.v2dawn.autotombstone.databinding.DiaAppFilterBinding
@@ -112,29 +115,48 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         }
 
         /** 设置同步列表按钮点击事件 */
-        binding.configTitleSync.setOnClickListener { onStartRefresh() }
+        binding.configTitleSync.setOnClickListener {
+            onStartRefresh(true)
+        }
         /** 设置列表元素和 Adapter */
         binding.configListView.apply {
             bindAdapter {
                 onBindDatas { appFilteredData }
                 onBindViews<AdapterItemAppBinding> { binding, position ->
                     appFilteredData[position].also { bean ->
+                        binding.appWhiteSwitch.setOnCheckedChangeListener(null)
+                        binding.appWhiteSwitch.isChecked = bean.enable
+                        binding.appWhiteSwitch.isEnabled = !bean.isImportantSystemApp
                         binding.adpAppIcon.setImageDrawable(bean.icon)
-
                         binding.adpAppName.text = bean.name
                         binding.adpAppPkgName.text = bean.packageName
-                        binding.appWhiteSwitch.isChecked = bean.enable
+                        binding.sysImpApp.tag = bean.name
+                        binding.sysApp.tag = bean.name
+                        binding.xpModule.tag = bean.name
                         binding.sysImpApp.isVisible = bean.isImportantSystemApp
                         binding.sysApp.isVisible = bean.isSystem
                         binding.xpModule.isVisible = bean.isXposedModule
-                        binding.appWhiteSwitch.isEnabled = !bean.isImportantSystemApp
                         binding.appWhiteSwitch.setOnCheckedChangeListener { btn, b ->
 //                            binding.appWhiteSwitch.isEnabled = b
                             //TODO notify adapter change enable
+                            Log.d(TAG, "change app switch ${bean.name} ${position}")
+                            if (bean.isImportantSystemApp) {
+                                toast(getString(R.string.imp_sys_app_not_support));
+                                return@setOnCheckedChangeListener
+                            }
+
+                            if (bean.isSystem) {
+                                //black
+                                if (updateBlackApps(bean.packageName, b)) {
+                                    updateListData(position)
+                                }
+                            } else {
+                                if (updateWhiteApps(bean.packageName, b)) {
+                                    updateListData(position)
+                                }
+                            }
                         }
-                        val onClickAction: View.OnClickListener = View.OnClickListener {
-                            toast("${bean.name} 是 ${it.tooltipText}")
-                        }
+
                         binding.sysApp.setOnClickListener(onClickAction)
                         binding.sysImpApp.setOnClickListener(onClickAction)
                         binding.xpModule.setOnClickListener(onClickAction)
@@ -174,31 +196,34 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                     }
                     true
                 }
-                onChanged = { notifyDataSetChanged() }
+                onChanged = {
+
+                    Log.d(TAG, "onChanged")
+                    notifyDataSetChanged()
+                }
             }
             onScrollEvent = { post { setSelection(if (it) appFilteredData.lastIndex else 0) } }
         }
         /** 装载数据 */
         mockLocalData(true)
 
-        setExitSharedElementCallback(object : SharedElementCallback() {
+//        setExitSharedElementCallback(object : SharedElementCallback() {
+//
+//            override fun onSharedElementEnd(
+//                sharedElementNames: MutableList<String>?,
+//                sharedElements: MutableList<View>?,
+//                sharedElementSnapshots: MutableList<View>?
+//            ) {
+//                super.onSharedElementEnd(sharedElementNames, sharedElements, sharedElementSnapshots)
+//                Log.d(TAG, "exitSharedElementCallback result:${transitionBack != null}")
+//
+//            }
+//
+//        })
+    }
 
-            override fun onSharedElementEnd(
-                sharedElementNames: MutableList<String>?,
-                sharedElements: MutableList<View>?,
-                sharedElementSnapshots: MutableList<View>?
-            ) {
-                super.onSharedElementEnd(sharedElementNames, sharedElements, sharedElementSnapshots)
-                if (transitionBack != null) {
-                    val position = transitionBack.getIntExtra("position", -1)
-                    if (position != -1) {
-                        // data
-                        updateListData(position)
-                    }
-                }
-            }
-
-        })
+    val onClickAction: View.OnClickListener = View.OnClickListener {
+        toast("${it.tag} 是 ${it.tooltipText}")
     }
 
     private fun updateListData(position: Int) {
@@ -207,30 +232,35 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         buildAppItemData(
             packageManager,
             appFilteredData[position].applicationInfo,
-            ArrayList(),
-            ArrayList(),
+            getBlackApps(),
+            getWhiteApps(),
             appFilteredData[position]
         )
-//        (binding.configListView.adapter as BaseAdapter).notifyDataSetChanged()
+        (binding.configListView.adapter as BaseAdapter).notifyDataSetChanged()
     }
 
     private lateinit var transitionBack: Intent;
     override fun onActivityReenter(resultCode: Int, data: Intent?) {
         if (RESULT_OK == resultCode && data != null) {
             transitionBack = data
+            Log.d(TAG, "reenter back")
+            if (transitionBack != null) {
+                val position = transitionBack.getIntExtra("position", -1)
+                if (position != -1) {
+                    // data
+                    updateListData(position)
+                }
+            }
         }
         super.onActivityReenter(resultCode, data)
     }
 
     /** 开始手动同步 */
-    private fun onStartRefresh(force: Boolean = false) = {
+    private fun onStartRefresh(force: Boolean = false) {
         filterText = ""
         mockLocalData(force)
     }
-//        IconRuleManagerTool.syncByHand(context = this) {
-//            filterText = ""
-//            mockLocalData()
-//        }
+
 
     /** 装载或刷新本地数据 */
     private fun mockLocalData(force: Boolean) {
@@ -242,7 +272,9 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         Observable.create(
             ObservableOnSubscribe { emitter: ObservableEmitter<List<AppItemData>> ->
                 loadApplicationInfos(packageManager, force)
-                val data: List<AppItemData> = buildCache()
+                val blackApps = getBlackApps()
+                val whiteApps = getWhiteApps()
+                val data: List<AppItemData> = buildCache(blackApps, whiteApps)
                 emitter.onNext(data)
                 emitter.onComplete()
             } as ObservableOnSubscribe<List<AppItemData>>)
@@ -257,6 +289,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             }
             .subscribe(
                 { data: List<AppItemData> ->
+                    Log.d(TAG, "reload data")
                     appConfigData.clear()
                     appConfigData.addAll(data)
                     refreshAdapterResult()
@@ -270,10 +303,13 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             }
     }
 
-    private fun buildCache(): List<AppItemData> {
+    private fun buildCache(
+        sysBlackApps: Set<String>,
+        whiteApps: Set<String>
+    ): List<AppItemData> {
         val cache: MutableList<AppItemData> = ArrayList<AppItemData>()
         for (appInfo in getApps()!!) {
-            val viewData = buildAppItemData(packageManager, appInfo, ArrayList(), ArrayList())
+            val viewData = buildAppItemData(packageManager, appInfo, sysBlackApps, whiteApps)
             cache.add(viewData)
         }
         cache.sortBy { it.priority }
@@ -312,10 +348,10 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
     private val appFilteredData
         get() = if (filterText.isBlank()) appConfigData.filter { if (it.isSystem) showSystem else true }
         else appConfigData.filter {
-            (if (it.isSystem) showSystem else true) and
-                    it.name.lowercase()
-                        .contains(filterText.lowercase()) || it.packageName.lowercase()
-                .contains(filterText.lowercase())
+            (!it.isSystem || (showSystem && it.isSystem)) && (it.name.lowercase()
+                .contains(filterText.lowercase()) || it.packageName.lowercase()
+                .contains(filterText.lowercase()))
+
         }
 
     override fun onBackPressed() {

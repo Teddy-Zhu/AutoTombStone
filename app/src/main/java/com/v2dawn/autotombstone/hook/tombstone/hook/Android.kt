@@ -1,8 +1,10 @@
 package com.v2dawn.autotombstone.hook.tombstone.hook;
 
+import android.content.IntentFilter
 import android.os.Build
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.loggerI
+import com.v2dawn.autotombstone.BuildConfig
 
 object Android : YukiBaseHooker() {
 
@@ -18,6 +20,13 @@ object Android : YukiBaseHooker() {
 
         }
 
+        loadApp(BuildConfig.APPLICATION_ID) {
+
+            val intentFilter = IntentFilter().apply {
+                addAction("action_pull_black")
+            }
+
+        }
     }
 
 }

@@ -22,16 +22,16 @@ object ConfigConst {
 
     //file white_apps
     val WHITE_APPS_NAME = "white_apps"
-    val WHITE_APPS = PrefsData("_$WHITE_APPS_NAME", "[]")
+    val WHITE_APPS = PrefsData(WHITE_APPS_NAME, setOf<String>())
 
     //file black_sys_apps
     val BLACK_SYSTEM_APPS_NAME = "black_system_apps"
-    val BLACK_SYSTEM_APPS = PrefsData("_$BLACK_SYSTEM_APPS_NAME", "[]")
+    val BLACK_SYSTEM_APPS = PrefsData(BLACK_SYSTEM_APPS_NAME, setOf<String>())
 
     //file white_app_processes
     val WHITE_APP_PROCESSES_NAME = "white_app_processes"
-    val WHITE_APP_PROCESSES = PrefsData("_$WHITE_APP_PROCESSES_NAME", "[]")
+    val WHITE_APP_PROCESSES = PrefsData(WHITE_APP_PROCESSES_NAME, setOf<String>())
 
     val KILL_APP_PROCESS_NAME = "kill_app_process"
-    val KILL_APP_PROCESS = PrefsData("_$KILL_APP_PROCESS_NAME", false)
+    val KILL_APP_PROCESS = PrefsData(KILL_APP_PROCESS_NAME, setOf<String>())
 }

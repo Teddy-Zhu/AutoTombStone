@@ -30,20 +30,20 @@ class MaterialSwitch(context: Context, attrs: AttributeSet?) : SwitchCompat(cont
             .rectangle()
             .rounded()
             .solidColor(0xFF656565.toInt())
-            .height(20.dp(context))
+            .height(25.dp(context))
             .cornerRadius(15.dp(context))
             .build()
         thumbDrawable = DrawableBuilder()
             .rectangle()
             .rounded()
             .solidColor(Color.WHITE)
-            .size(20.dp(context), 20.dp(context))
-            .cornerRadius(20.dp(context))
+            .size(25.dp(context), 25.dp(context))
+            .cornerRadius(25.dp(context))
             .strokeWidth(8.dp(context))
             .strokeColor(Color.TRANSPARENT)
             .build()
         trackTintList = trackColors(
-            0xFF656565.toInt(),
+            0xFF0c84ff.toInt(),
             thumbColor.toInt(),
             thumbColor.toInt()
         )

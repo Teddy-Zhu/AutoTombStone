@@ -16,5 +16,9 @@
 
     <string name="show_sys_app">show system app</string>
     <string name="func_desc">auto tombstone fully, support Audio source and floating window </string>
+    <string name="imp_sys_app_not_support">important system app not support to freeze</string>
+    <string name="ignore_process">ignore</string>
+    <string name="force_process">force stop</string>
+    <string name="follow_process">follow app</string>
 
 </resources>

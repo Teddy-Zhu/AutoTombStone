@@ -16,7 +16,8 @@ import com.highcapable.yukihookapi.hook.type.android.LayoutInflaterClass
  * @return [BaseAdapter]
  */
 inline fun ListView.bindAdapter(initiate: BaseAdapterCreater.() -> Unit) =
-    BaseAdapterCreater(context).apply(initiate).baseAdapter?.apply { adapter = this } ?: error("BaseAdapter not binded")
+    BaseAdapterCreater(context).apply(initiate).baseAdapter?.apply { adapter = this }
+        ?: error("BaseAdapter not binded")
 
 /**
  * [BaseAdapter] 创建类
@@ -54,7 +55,8 @@ class BaseAdapterCreater(val context: Context) {
                     holder = VB::class.java.method {
                         name = "inflate"
                         param(LayoutInflaterClass)
-                    }.get().invoke<VB>(LayoutInflater.from(context)) ?: error("ViewHolder binding failed")
+                    }.get().invoke<VB>(LayoutInflater.from(context))
+                        ?: error("ViewHolder binding failed")
                     holderView = holder.root.apply { tag = holder }
                 } else holder = convertView.tag as VB
                 bindViews(holder, position)

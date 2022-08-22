@@ -163,9 +163,37 @@
             android:text="@string/app_white"
             android:textAllCaps="false"
             android:textColor="@color/colorTextGray"
-            android:textSize="18sp" />
+            android:textSize="20sp" />
     </LinearLayout>
 
 
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
+        <TextView
+            android:id="@+id/service_list_no_data_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:lineSpacingExtra="6dp"
+            android:text="没有数据"
+            android:textColor="@color/colorTextDark"
+            android:textSize="17sp"
+            android:visibility="gone" />
+
+        <ListView
+            android:id="@+id/service_list_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="@color/trans"
+            android:dividerHeight="15dp"
+            android:fadingEdgeLength="10dp"
+            android:listSelector="@color/trans"
+            android:padding="15dp"
+            android:requiresFadingEdge="vertical"
+            android:scrollbars="none" />
+    </FrameLayout>
 </LinearLayout>

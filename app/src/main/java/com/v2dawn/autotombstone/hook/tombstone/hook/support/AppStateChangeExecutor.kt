@@ -208,12 +208,15 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
     }
 
     private fun getTargetProcessPid(packageName: String): Int {
-        for (processRecord in processList.processRecords) {
-            // 如果包名和事件的包名不同就不处理
-            if (packageName == processRecord.processName) {
-                return processRecord.pid
+        synchronized(processList.processRecords){
+            for (processRecord in processList.processRecords) {
+                // 如果包名和事件的包名不同就不处理
+                if (packageName == processRecord.processName) {
+                    return processRecord.pid
+                }
             }
         }
+
         return -1
     }
 
@@ -318,11 +321,11 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
 
     }
 
-    fun stopServiceLocked(processRecord: ProcessRecord) {
+    private fun stopServiceLocked(processRecord: ProcessRecord) {
         stopServiceLocked(processRecord, false)
     }
 
-    fun stopServiceLocked(processRecord: ProcessRecord, enqueueOomAdj: Boolean) {
+    private fun stopServiceLocked(processRecord: ProcessRecord, enqueueOomAdj: Boolean) {
         for (processServiceRecord in processRecord.processServiceRecords) {
             for (mService in processServiceRecord.mServices) {
                 if (useOriginMethod) {
@@ -461,7 +464,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
         // 存放需要冻结/解冻的 processRecord
         val targetProcessRecords: MutableList<ProcessRecord> = ArrayList<ProcessRecord>()
         // 对进程列表加锁
-        synchronized(processList.processRecords) {
+        synchronized(processRecords) {
             // 遍历进程列表
             for (processRecord in processRecords) {
                 if (processRecord.userId != ActivityManagerService.MAIN_USER) {

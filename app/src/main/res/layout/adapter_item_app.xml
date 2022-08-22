@@ -98,7 +98,6 @@
             android:transitionName="app_white_switch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/app_white"
             android:animateLayoutChanges="true"
             android:textAllCaps="false"
             android:textColor="@color/colorTextGray"

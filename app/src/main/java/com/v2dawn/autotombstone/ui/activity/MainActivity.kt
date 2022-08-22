@@ -3,11 +3,15 @@
 package com.v2dawn.autotombstone.ui.activity
 
 import android.content.ComponentName
+import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import androidx.core.view.isVisible
 import com.highcapable.yukihookapi.YukiHookAPI
+import com.highcapable.yukihookapi.hook.factory.modulePrefs
 import com.v2dawn.autotombstone.BuildConfig
 import com.v2dawn.autotombstone.R
+import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.databinding.ActivityMainBinding
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
 import com.v2dawn.autotombstone.utils.factory.navigate
@@ -38,6 +42,21 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         binding.appConfigButton.setOnClickListener {
             navigate<AppConfigureActivity>()
 //            navigate<AppConfigureDetailActivity>()
+        }
+//
+//        getPrefs(ConfigConst.COMMON_NAME)
+//            .registerOnSharedPreferenceChangeListener { prefs, key ->
+//
+//            }
+    }
+
+    private fun getPrefs(prefsName: String): SharedPreferences {
+        try {
+            return getSharedPreferences(prefsName, Context.MODE_WORLD_READABLE)
+                ?: error("If you want to use module prefs, you must set the context instance first")
+        } catch (_: Throwable) {
+            return getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+                ?: error("If you want to use module prefs, you must set the context instance first")
         }
     }
 
@@ -100,7 +119,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             YukiHookAPI.Status.executorVersion > 0 ->
                 binding.mainTextApiWay.text =
                     "Activated by ${YukiHookAPI.Status.executorName} API ${YukiHookAPI.Status.executorVersion}"
-            YukiHookAPI.Status.isTaiChiModuleActive -> binding.mainTextApiWay.text = "Activated by TaiChi"
+            YukiHookAPI.Status.isTaiChiModuleActive -> binding.mainTextApiWay.text =
+                "Activated by TaiChi"
             else -> binding.mainTextApiWay.text = "Activated by anonymous"
         }
     }

@@ -16,10 +16,12 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewbinding.ViewBinding
+import com.github.zawadz88.materialpopupmenu.popupMenu
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.highcapable.yukihookapi.annotation.CauseProblemsApi
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.android.LayoutInflaterClass
+import com.v2dawn.autotombstone.R
 import com.v2dawn.autotombstone.utils.factory.*
 
 /**
@@ -28,7 +30,13 @@ import com.v2dawn.autotombstone.utils.factory.*
  * @param result 回调 - 小时与分钟 HH:mm
  */
 fun Context.showTimePicker(timeSet: String = "", result: (String) -> Unit) =
-    TimePickerDialog(this, { _, h, m -> result("${h.autoZero}:${m.autoZero}") }, timeSet.hour, timeSet.minute, true).show()
+    TimePickerDialog(
+        this,
+        { _, h, m -> result("${h.autoZero}:${m.autoZero}") },
+        timeSet.hour,
+        timeSet.minute,
+        true
+    ).show()
 
 /**
  * 构造 [VB] 自定义 View 对话框
@@ -42,14 +50,18 @@ inline fun <reified VB : ViewBinding> Context.showDialog(initiate: DialogBuilder
  * 构造对话框
  * @param initiate 对话框方法体
  */
-inline fun Context.showDialog(initiate: DialogBuilder<*>.() -> Unit) = DialogBuilder<ViewBinding>(context = this).apply(initiate).show()
+inline fun Context.showDialog(initiate: DialogBuilder<*>.() -> Unit) =
+    DialogBuilder<ViewBinding>(context = this).apply(initiate).show()
 
 /**
  * 对话框构造器
  * @param context 实例
  * @param bindingClass [ViewBinding] 的 [Class] 实例 or null
  */
-class DialogBuilder<VB : ViewBinding>(val context: Context, private val bindingClass: Class<*>? = null) {
+class DialogBuilder<VB : ViewBinding>(
+    val context: Context,
+    private val bindingClass: Class<*>? = null
+) {
 
     private var instanceAndroidX: androidx.appcompat.app.AlertDialog.Builder? = null // 实例对象
     private var instanceAndroid: android.app.AlertDialog.Builder? = null // 实例对象
@@ -74,12 +86,18 @@ class DialogBuilder<VB : ViewBinding>(val context: Context, private val bindingC
      * 是否需要使用 AndroidX 风格对话框
      * @return [Boolean]
      */
-    private val isUsingAndroidX get() = runCatching { context is AppCompatActivity }.getOrNull() ?: false
+    private val isUsingAndroidX
+        get() = runCatching { context is AppCompatActivity }.getOrNull() ?: false
 
     init {
         if (isUsingAndroidX)
             runInSafe { instanceAndroidX = MaterialAlertDialogBuilder(context) }
-        else runInSafe { instanceAndroid = android.app.AlertDialog.Builder(context, android.R.style.Theme_Material_Light_Dialog) }
+        else runInSafe {
+            instanceAndroid = android.app.AlertDialog.Builder(
+                context,
+                android.R.style.Theme_Material_Light_Dialog
+            )
+        }
     }
 
     /** 设置对话框不可关闭 */
@@ -116,7 +134,9 @@ class DialogBuilder<VB : ViewBinding>(val context: Context, private val bindingC
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER or Gravity.START
                     addView(ProgressBar(context))
-                    addView(View(context).apply { layoutParams = ViewGroup.LayoutParams(20.dp(context), 5) })
+                    addView(View(context).apply {
+                        layoutParams = ViewGroup.LayoutParams(20.dp(context), 5)
+                    })
                     addView(TextView(context).apply {
                         tag = "progressContent"
                         text = value
@@ -188,4 +208,35 @@ class DialogBuilder<VB : ViewBinding>(val context: Context, private val bindingC
             }?.show()
         }
     }
+}
+
+
+fun Context.showPopup(view: View, currentIndex: Int, cb: (index: Int) -> Unit) {
+    val popupMenu = popupMenu {
+        section {
+            item {
+                labelRes = R.string.follow_process
+                icon = if (currentIndex == 0) R.drawable.ic_right else 0
+                callback = { //optional
+                    cb(0)
+                }
+            }
+            item {
+                labelRes = R.string.force_process
+                icon = if (currentIndex == 1) R.drawable.ic_right else 0
+                callback = { //optional
+                    cb(1)
+                }
+            }
+            item {
+                labelRes = R.string.ignore_process
+                icon = if (currentIndex == 2) R.drawable.ic_right else 0
+                callback = { //optional
+                    cb(2)
+                }
+            }
+        }
+    }
+
+    popupMenu.show(this, view)
 }
