@@ -10,7 +10,7 @@ import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
 
-object ConfigReloadHook: YukiBaseHooker() {
+object ConfigReloadHook : YukiBaseHooker() {
 
     override fun onHook() {
         loadApp(BuildConfig.APPLICATION_ID) {
@@ -24,8 +24,12 @@ object ConfigReloadHook: YukiBaseHooker() {
 
                         loggerD(msg = "module change ${args(0).string()} , ${args(1).string()}")
 
-                        if (AppStateChangeExecutor.instance != null){
-                            AppStateChangeExecutor.instance!!.reloadConfig(args(0).string())
+                        if (AppStateChangeExecutor.instance != null) {
+                            AppStateChangeExecutor.instance!!.reloadConfig(
+                                args(0).string() + "#" + args(
+                                    1
+                                ).string()
+                            )
                         }
                     }
                 }

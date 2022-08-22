@@ -167,10 +167,11 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
                 val pkg = queue.take()
 
                 if (pkg.startsWith(RELOAD_TASK_PREFIX)) {
-                    val configName = pkg.removePrefix(RELOAD_TASK_PREFIX)
-                    loggerD(msg = "reload config ${configName}")
+                    val configNameValue = pkg.removePrefix(RELOAD_TASK_PREFIX)
+                    val kv = configNameValue.split("#")
+                    loggerD(msg = "reload config ${kv}")
                     packageParam.apply {
-                        prefsInstance(configName).reload()
+                        prefs(kv[0]).reload()
                     }
                 } else {
                     check(pkg)
