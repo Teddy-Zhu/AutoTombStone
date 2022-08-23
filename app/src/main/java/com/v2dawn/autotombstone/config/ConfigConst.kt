@@ -4,7 +4,6 @@ import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
 
 object ConfigConst {
 
-    var isDebug = false
     //file common
 //    val ENABLE_MODULE = PrefsData("_enable_module", true)
     val ENABLE_MODULE_LOG = PrefsData("enable_module_log", false)

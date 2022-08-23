@@ -62,7 +62,7 @@ class BroadcastDeliverHook : YukiBaseHooker() {
         // 暂存
         val app: Any = processRecord.processRecord
 
-        atsLogD( "${processRecord.processName.toString()}  clear broadcast")
+        atsLogD("${processRecord.processName.toString()}  clear broadcast")
         // 清楚广播
         receiverList.clear()
 
@@ -102,6 +102,11 @@ class BroadcastDeliverHook : YukiBaseHooker() {
                 }
                 var app: Any? = null
                 beforeHook {
+                    if (AppStateChangeExecutor.instance != null) {
+                        atsLogD("app state change check not null")
+                    } else {
+                        atsLogD("app state change check null")
+                    }
                     app = myReplaceMethod(this)
                 }
                 afterHook {

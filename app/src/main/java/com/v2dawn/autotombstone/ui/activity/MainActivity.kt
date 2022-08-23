@@ -47,21 +47,33 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         binding.appConfigButton.setOnClickListener {
             navigate<AppConfigureActivity>()
         }
+        Log.i(TAG,"check debug ${ modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_MODULE_LOG)}")
+
+        binding.enableDebug.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_MODULE_LOG)
         binding.enableDebug.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_MODULE_LOG, checked)
         }
+        binding.kill19.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FORCE_KILL_19)
+
         binding.kill19.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FORCE_KILL_19, checked)
         }
+        binding.kill20.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FORCE_KILL_20)
+
         binding.kill20.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FORCE_KILL_20, checked)
         }
+        binding.freezerApi.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_API)
         binding.freezerApi.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_API, checked)
         }
+        binding.freezerV2.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_V2)
+
         binding.freezerV2.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_V2, checked)
         }
+        binding.freezerV1.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_V1)
+
         binding.freezerV1.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_V1, checked)
         }

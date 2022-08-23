@@ -6,6 +6,7 @@ import com.highcapable.yukihookapi.hook.log.loggerE
 import com.highcapable.yukihookapi.hook.log.loggerI
 import com.highcapable.yukihookapi.hook.log.loggerW
 import com.highcapable.yukihookapi.hook.param.PackageParam
+import com.highcapable.yukihookapi.hook.xposed.prefs.YukiHookModulePrefs
 import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.hook.tombstone.server.ApplicationInfo
 
@@ -21,9 +22,11 @@ fun atsLogI(msg: String) {
 }
 
 fun atsLogD(msg: String) {
-//    if (ConfigConst.isDebug) {
+    if (YukiHookModulePrefs.InnerOpen.instance().name(ConfigConst.COMMON_NAME)
+            .get(ConfigConst.ENABLE_MODULE_LOG)
+    ) {
         loggerD(msg = msg)
-//    }
+    }
 }
 
 fun atsLogE(msg: String, e: Throwable) {

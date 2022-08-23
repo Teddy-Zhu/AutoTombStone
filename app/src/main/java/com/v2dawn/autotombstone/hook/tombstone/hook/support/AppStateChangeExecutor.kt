@@ -60,14 +60,10 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
 
     companion object {
 
-        public val RELOAD_TASK_PREFIX = "reload_task:"
-
-        public var instance: AppStateChangeExecutor? = null
-
+        var instance: AppStateChangeExecutor? = null
         public val backgroundApps = hashSetOf<String>()
 
         const val DELAY_TIME: Long = 5000
-        const val TASK_RELOAD_DELAY: Long = 3000
         private val SYS_SUPPORTS_SCHEDGROUPS = File("/dev/cpuctl/tasks").exists()
         private var OP_WAKE_LOCK = 40
         private var STANDBY_BUCKET_NEVER = 50
@@ -88,24 +84,6 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
             return total
         }
 
-    }
-
-
-    public fun reloadConfig(name: String) {
-        atsLogD("receive task for reload cache config :${name}")
-        val fullName = RELOAD_TASK_PREFIX + name
-        synchronized(fullName.intern()) {
-            var timer = timerMap.getOrDefault(fullName, null)
-
-            timer?.cancel()
-            timer = Timer()
-            timer.schedule(object : TimerTask() {
-                override fun run() {
-                    queue.put(fullName)
-                }
-            }, TASK_RELOAD_DELAY)
-            timerMap[fullName] = timer
-        }
     }
 
     public fun execute(pid: Int, hasOverlayUi: Boolean): Boolean {
@@ -159,16 +137,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
             try {
                 val pkg = queue.take()
 
-                if (pkg.startsWith(RELOAD_TASK_PREFIX)) {
-                    val configNameValue = pkg.removePrefix(RELOAD_TASK_PREFIX)
-                    val kv = configNameValue.split("#")
-                    atsLogD("reload config ${kv}")
-                    packageParam.apply {
-                        prefs(kv[0]).clearCache(kv[1])
-                    }
-                } else {
-                    check(pkg)
-                }
+                check(pkg)
 
             } catch (eex: Exception) {
                 atsLogE("task exe error", e = eex)
