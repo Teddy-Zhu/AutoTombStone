@@ -28,12 +28,11 @@ class HookEntry : IYukiHookXposedInit {
 
     override fun onHook() = encase {
 
-        loadZygote {
-            loadHooker(ActivityThreadHook())
-
-        }
         loadSystem {
             atsLogI("${Build.MANUFACTURER} device:$packageName")
+
+
+            loadHooker(ActivityThreadHook())
 
 //            loadHooker(CacheFreezerHook())
             loadHooker(UsageContextHook())
