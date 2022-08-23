@@ -8,8 +8,10 @@ import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecut
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
 import com.v2dawn.autotombstone.utils.factory.runInSafe
 import java.util.*
+import java.util.concurrent.ArrayBlockingQueue
 
-class ConfigReloadHook : YukiBaseHooker() {
+@Deprecated(message = "do not need any more , replace with ats config service aidl")
+class ConfigReloadHook(val reloadQueue: ArrayBlockingQueue<String>) : YukiBaseHooker() {
 
     override fun onHook() {
 
@@ -21,18 +23,19 @@ class ConfigReloadHook : YukiBaseHooker() {
                 }
                 afterHook {
 
-
+                    atsLogD("config queue obj: ${reloadQueue.hashCode()}")
                     val key = args(1).string();
                     val prefName = args(0).string()
                     atsLogD("module change name:$prefName ,key:$key")
 
-                    Thread {
-                        Thread.sleep(5000)
-                        prefs(prefName).clearCache(key)
-                        atsLogD("debug log change reload end")
-                    }.apply {
-                        isDaemon = true
-                    }.start()
+
+                    Timer().schedule(object: TimerTask() {
+                        override fun run() {
+                            reloadQueue.put("$prefName#$key")
+                            atsLogD("config change reload push end")
+                        }
+
+                    },5000)
                 }
             }
         }

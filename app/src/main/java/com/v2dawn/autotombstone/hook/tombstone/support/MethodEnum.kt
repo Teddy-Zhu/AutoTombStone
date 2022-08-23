@@ -1,6 +1,7 @@
 package com.v2dawn.autotombstone.hook.tombstone.support;
 
 object MethodEnum {
+    const val systemMain ="systemMain"
     const val updateActivityUsageStats = "updateActivityUsageStats"
     const val deliverToRegisteredReceiverLocked = "deliverToRegisteredReceiverLocked"
     const val appNotResponding = "appNotResponding"

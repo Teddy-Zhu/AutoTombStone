@@ -3,19 +3,25 @@
 package com.v2dawn.autotombstone.ui.activity
 
 import android.content.ComponentName
-import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.os.IAtsConfigService
+import android.os.IBinder
 import android.util.Log
 import androidx.core.view.isVisible
 import com.highcapable.yukihookapi.YukiHookAPI
+import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.factory.modulePrefs
+import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.BuildConfig
 import com.v2dawn.autotombstone.R
 import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.databinding.ActivityMainBinding
+import com.v2dawn.autotombstone.hook.tombstone.support.AtsConfigService
+import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
 import com.v2dawn.autotombstone.utils.factory.navigate
+
 
 class MainActivity : BaseActivity<ActivityMainBinding>() {
     companion object {
@@ -29,6 +35,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
         /** 预发布的版本标识 */
         private const val pendingFlag = ""
+
+        var atsConfigService: IAtsConfigService? = null
     }
 
     private val prefsListeners =
@@ -47,32 +55,41 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         binding.appConfigButton.setOnClickListener {
             navigate<AppConfigureActivity>()
         }
-        Log.i(TAG,"check debug ${ modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_MODULE_LOG)}")
+        Log.i(
+            TAG,
+            "check debug ${modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_MODULE_LOG)}"
+        )
 
-        binding.enableDebug.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_MODULE_LOG)
+        binding.enableDebug.isChecked =
+            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_MODULE_LOG)
         binding.enableDebug.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_MODULE_LOG, checked)
         }
-        binding.kill19.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FORCE_KILL_19)
+        binding.kill19.isChecked =
+            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FORCE_KILL_19)
 
         binding.kill19.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FORCE_KILL_19, checked)
         }
-        binding.kill20.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FORCE_KILL_20)
+        binding.kill20.isChecked =
+            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FORCE_KILL_20)
 
         binding.kill20.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FORCE_KILL_20, checked)
         }
-        binding.freezerApi.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_API)
+        binding.freezerApi.isChecked =
+            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_API)
         binding.freezerApi.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_API, checked)
         }
-        binding.freezerV2.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_V2)
+        binding.freezerV2.isChecked =
+            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_V2)
 
         binding.freezerV2.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_V2, checked)
         }
-        binding.freezerV1.isChecked = modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_V1)
+        binding.freezerV1.isChecked =
+            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_V1)
 
         binding.freezerV1.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_V1, checked)
@@ -97,8 +114,25 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     }
 
-    private fun prefChange(name: String, key: String) {
-        Log.d(TAG, "pref change $name , $key")
+    private fun prefChange(configName: String, key: String) {
+        Log.d(TAG, "pref change $configName , $key")
+        try {
+            if (atsConfigService == null) {
+                val binder: IBinder = ClassEnum.ServiceManagerClass.javaClass
+                    .method {
+                        name = "getService"
+                        param(StringType)
+                    }.get().invoke<IBinder>(AtsConfigService.serviceName)!!
+
+                atsConfigService =
+                    IAtsConfigService.Stub.asInterface(binder)
+                //mService =(ICustomService)context.getSystemService("wx_custom.service");
+            }
+            atsConfigService?.configChange(configName, key)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "call confservice error", e)
+        }
     }
 
     override fun onDestroy() {

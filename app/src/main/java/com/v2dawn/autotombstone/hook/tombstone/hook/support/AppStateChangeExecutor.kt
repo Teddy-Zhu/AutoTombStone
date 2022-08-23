@@ -37,9 +37,34 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
 
 @SuppressLint("ServiceCast")
-class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) : Runnable {
+class AppStateChangeExecutor(
+    private val packageParam: PackageParam,
+    ams: Any,
+) : Runnable {
 
     private val thread: Thread = Thread(this)
+    public val reloadConfigQueue = ArrayBlockingQueue<String>(10)
+
+    private val reloadThread: Thread = Thread {
+        try {
+            atsLogD("task queue obj: ${reloadConfigQueue.hashCode()}")
+
+            while (true) {
+                val params = reloadConfigQueue.take()
+                val kv = params.split("#")
+                if (kv.size != 2) {
+                    atsLogW("reload kv exception :$params")
+                    continue
+                }
+                packageParam.apply {
+                    atsLogI("reload config:$kv[0],key:$kv[1]")
+                    prefs.name(kv[0]).reload(kv[1])
+                }
+            }
+        } catch (e: Exception) {
+            //ignored
+        }
+    }
     val queue: BlockingQueue<String> = ArrayBlockingQueue(20)
     val timerMap = Collections.synchronizedMap(HashMap<String, Timer?>())
     private val freezeUtils: FreezeUtils
@@ -598,6 +623,8 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
             }
         }
         thread.isDaemon = true
+        reloadThread.isDaemon = true
+        reloadThread.start()
         thread.start()
     }
 }

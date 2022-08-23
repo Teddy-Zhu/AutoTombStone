@@ -1,9 +1,11 @@
 package com.v2dawn.autotombstone.hook.tombstone.hook
 
+import android.content.Context
 import android.os.Build
 import android.service.notification.StatusBarNotification
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.field
+import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.loggerD
 import com.highcapable.yukihookapi.hook.log.loggerI
 import com.highcapable.yukihookapi.hook.param.HookParam
@@ -11,16 +13,15 @@ import com.highcapable.yukihookapi.hook.type.android.ComponentNameClass
 import com.highcapable.yukihookapi.hook.type.android.IBinderClass
 import com.highcapable.yukihookapi.hook.type.android.IntentClass
 import com.highcapable.yukihookapi.hook.type.java.IntType
+import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.ComponentName
 import com.v2dawn.autotombstone.hook.tombstone.server.Event
-import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
-import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
-import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
-import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
+import com.v2dawn.autotombstone.hook.tombstone.support.*
+import java.util.concurrent.ArrayBlockingQueue
 
-class AppStateChangeHook : YukiBaseHooker() {
+class AppStateChangeHook() : YukiBaseHooker() {
     private val ACTIVITY_RESUMED: Int =
         Event.EventClass.clazz.field { name = Event.ACTIVITY_RESUMED }.get(null).cast<Int>()!!
     private val ACTIVITY_PAUSED: Int =
@@ -29,6 +30,8 @@ class AppStateChangeHook : YukiBaseHooker() {
     private val SIMPLE = 1
     private val DIFFICULT = 2
 
+    companion object {
+    }
 
     private fun stateBeforeHookMethod(
         param: HookParam,
@@ -44,7 +47,7 @@ class AppStateChangeHook : YukiBaseHooker() {
                 if (type == SIMPLE) param.args(0).string() else ComponentName(
                     param.args(0).cast<Any>()!!
                 ).packageName
-            atsLogD( "event=$event packageName=$packageName")
+            atsLogD("event=$event packageName=$packageName")
             val userId = param.args(1).int()
             if (userId != ActivityManagerService.MAIN_USER) {
                 return@Runnable
@@ -65,11 +68,12 @@ class AppStateChangeHook : YukiBaseHooker() {
                     param(Runnable::class.java, "com.android.server.utils.TimingsTraceAndSlog")
                 }
                 afterHook {
-                    atsLogD( "ready ams")
+                    atsLogD("ready ams")
 
                     val appStateChangeExecutor =
                         AppStateChangeExecutor(this@AppStateChangeHook, instance)
                     AppStateChangeExecutor.instance = appStateChangeExecutor
+//                    registerAtsConfigService(appStateChangeExecutor);
                     hookOther(appStateChangeExecutor)
                 }
             }
@@ -110,7 +114,7 @@ class AppStateChangeHook : YukiBaseHooker() {
                 }
             }
         }
-        atsLogI( "hook commom app switch")
+        atsLogI("hook commom app switch")
 
         ClassEnum.NotificationUsageStatsClass.hook {
             injectMember {
@@ -119,7 +123,7 @@ class AppStateChangeHook : YukiBaseHooker() {
                     param("com.android.server.notification.NotificationRecord")
                 }
                 afterHook {
-                    atsLogD( "app no or overlay closed")
+                    atsLogD("app no or overlay closed")
 
 
                     val sbn = "com.android.server.notification.NotificationRecord".clazz
@@ -130,7 +134,7 @@ class AppStateChangeHook : YukiBaseHooker() {
             }
         }
         // for overlay ui & notification
-        atsLogI( "hook app notification remove & overlay closed")
+        atsLogI("hook app notification remove & overlay closed")
         "${ClassEnum.ActivityManagerServiceClass}\$LocalService"
             .hook {
                 injectMember {
@@ -141,13 +145,13 @@ class AppStateChangeHook : YukiBaseHooker() {
                     afterHook {
                         val hasOverlayUi = args(1).boolean()
                         val pid = args(0).int()
-                        atsLogD( "set pid :$pid hasOverlayUi:$hasOverlayUi")
+                        atsLogD("set pid :$pid hasOverlayUi:$hasOverlayUi")
                         appStateChangeExecutor.execute(pid, hasOverlayUi)
                     }
                 }
             }
 
-    }
 
+    }
 
 }

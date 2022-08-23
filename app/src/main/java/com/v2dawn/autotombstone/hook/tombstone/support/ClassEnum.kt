@@ -1,6 +1,7 @@
 package com.v2dawn.autotombstone.hook.tombstone.support;
 
 object ClassEnum {
+    const val ActivityThreadClass = "android.app.ActivityThread"
     const val ServiceRecordClass ="com.android.server.am.ServiceRecord"
     const val ServiceManagerClass = "android.os.ServiceManager"
     const val AppOpsServiceClass = "com.android.server.appop.AppOpsService"

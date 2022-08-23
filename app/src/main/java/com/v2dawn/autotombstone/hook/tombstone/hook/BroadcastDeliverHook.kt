@@ -102,11 +102,6 @@ class BroadcastDeliverHook : YukiBaseHooker() {
                 }
                 var app: Any? = null
                 beforeHook {
-                    if (AppStateChangeExecutor.instance != null) {
-                        atsLogD("app state change check not null")
-                    } else {
-                        atsLogD("app state change check null")
-                    }
                     app = myReplaceMethod(this)
                 }
                 afterHook {
