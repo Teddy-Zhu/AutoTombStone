@@ -1,6 +1,5 @@
 package com.v2dawn.autotombstone.hook.tombstone.hook
 
-import android.content.ComponentName
 import android.os.Build
 import android.service.notification.StatusBarNotification
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
@@ -14,13 +13,14 @@ import com.highcapable.yukihookapi.hook.type.android.IntentClass
 import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
+import com.v2dawn.autotombstone.hook.tombstone.server.ComponentName
 import com.v2dawn.autotombstone.hook.tombstone.server.Event
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedHelpers
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
 
-object AppStateChangeHook : YukiBaseHooker() {
+class AppStateChangeHook : YukiBaseHooker() {
     private val ACTIVITY_RESUMED: Int =
         Event.EventClass.clazz.field { name = Event.ACTIVITY_RESUMED }.get(null).cast<Int>()!!
     private val ACTIVITY_PAUSED: Int =
@@ -42,9 +42,9 @@ object AppStateChangeHook : YukiBaseHooker() {
             // AMS有两个方法，但参数不同
             val packageName =
                 if (type == SIMPLE) param.args(0).string() else ComponentName(
-                    param.args(0).cast()
+                    param.args(0).cast<Any>()!!
                 ).packageName
-            loggerD(msg = "event=$event packageName=$packageName")
+            atsLogD( "event=$event packageName=$packageName")
             val userId = param.args(1).int()
             if (userId != ActivityManagerService.MAIN_USER) {
                 return@Runnable
@@ -65,7 +65,7 @@ object AppStateChangeHook : YukiBaseHooker() {
                     param(Runnable::class.java, "com.android.server.utils.TimingsTraceAndSlog")
                 }
                 afterHook {
-                    loggerD(msg = "ready ams")
+                    atsLogD( "ready ams")
 
                     val appStateChangeExecutor =
                         AppStateChangeExecutor(this@AppStateChangeHook, instance)
@@ -110,7 +110,7 @@ object AppStateChangeHook : YukiBaseHooker() {
                 }
             }
         }
-        loggerI(msg = "hook commom app switch")
+        atsLogI( "hook commom app switch")
 
         ClassEnum.NotificationUsageStatsClass.hook {
             injectMember {
@@ -119,7 +119,7 @@ object AppStateChangeHook : YukiBaseHooker() {
                     param("com.android.server.notification.NotificationRecord")
                 }
                 afterHook {
-                    loggerD(msg = "app no or overlay closed")
+                    atsLogD( "app no or overlay closed")
 
 
                     val sbn = "com.android.server.notification.NotificationRecord".clazz
@@ -130,8 +130,8 @@ object AppStateChangeHook : YukiBaseHooker() {
             }
         }
         // for overlay ui & notification
-        loggerI(msg = "hook app notification remove & overlay closed")
-        ClassEnum.ActivityManagerServiceClass
+        atsLogI( "hook app notification remove & overlay closed")
+        "${ClassEnum.ActivityManagerServiceClass}\$LocalService"
             .hook {
                 injectMember {
                     method {
@@ -141,7 +141,7 @@ object AppStateChangeHook : YukiBaseHooker() {
                     afterHook {
                         val hasOverlayUi = args(1).boolean()
                         val pid = args(0).int()
-                        loggerD(msg = "set pid :$pid hasOverlayUi:$hasOverlayUi")
+                        atsLogD( "set pid :$pid hasOverlayUi:$hasOverlayUi")
                         appStateChangeExecutor.execute(pid, hasOverlayUi)
                     }
                 }

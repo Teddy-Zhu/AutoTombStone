@@ -1,7 +1,6 @@
 package com.v2dawn.autotombstone.ui.activity
 
 import android.content.Intent
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -12,11 +11,9 @@ import androidx.core.view.isVisible
 import com.v2dawn.autotombstone.R
 import com.v2dawn.autotombstone.databinding.ActivityAppConfigDetailBinding
 import com.v2dawn.autotombstone.databinding.AdapterAppServerAppBinding
-import com.v2dawn.autotombstone.databinding.AdapterItemAppBinding
 import com.v2dawn.autotombstone.model.AppItemData
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
 import com.v2dawn.autotombstone.utils.factory.*
-import java.text.FieldPosition
 
 
 class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>() {

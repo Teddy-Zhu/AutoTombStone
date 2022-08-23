@@ -7,13 +7,14 @@ import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.BroadcastFilter
-import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryBlackSysAppsList
-import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryWhiteAppList
-import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryWhiteProcessesList
+import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAppList
+import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteProcessesList
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
 
-object BroadcastDeliverHook : YukiBaseHooker() {
+class BroadcastDeliverHook : YukiBaseHooker() {
 
     fun myReplaceMethod(param: HookParam): Any? {
         val arg1 = param.args(1).any() ?: return null
@@ -28,7 +29,7 @@ object BroadcastDeliverHook : YukiBaseHooker() {
         // 如果广播为空就不处理
         val processRecord = receiverList?.processRecord
         // 如果进程或者应用信息为空就不处理
-        if (processRecord == null || processRecord.applicationInfo == null) {
+        if (processRecord?.applicationInfo == null) {
             return null
         }
         if (processRecord.userId != ActivityManagerService.MAIN_USER) {
@@ -61,9 +62,9 @@ object BroadcastDeliverHook : YukiBaseHooker() {
         // 暂存
         val app: Any = processRecord.processRecord
 
-        loggerD(msg = "${processRecord.processName.toString()}  clear broadcast")
+        atsLogD( "${processRecord.processName.toString()}  clear broadcast")
         // 清楚广播
-        receiverList?.clear()
+        receiverList.clear()
 
         return app
     }
@@ -76,9 +77,6 @@ object BroadcastDeliverHook : YukiBaseHooker() {
         val arg1 = param.args(1).any() ?: return
 
         // 获取进程
-        if (arg1 == null) {
-            return
-        }
 
         val broadcastFilter = BroadcastFilter(arg1)
         if (broadcastFilter.receiverList != null) {

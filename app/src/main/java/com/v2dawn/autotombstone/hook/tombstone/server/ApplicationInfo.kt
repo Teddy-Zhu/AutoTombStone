@@ -1,19 +1,17 @@
 package com.v2dawn.autotombstone.hook.tombstone.server;
 
 import com.highcapable.yukihookapi.hook.factory.field
-import com.highcapable.yukihookapi.hook.param.PackageParam
-import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.isSystem
+import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.isSystem
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
-import de.robv.android.xposed.XposedHelpers;
 
 
-class ApplicationInfo(applicationInfo: Any) {
+class ApplicationInfo(val applicationInfo: Any) {
     val FLAG_SYSTEM: Int;
     val FLAG_UPDATED_SYSTEM_APP: Int
     val flags: Int
     val uid: Int
     val processName: String?
-    val packageName: String
+    val packageName: String?
     val isSystem: Boolean
         get() = isSystem(this)
 
@@ -36,7 +34,8 @@ class ApplicationInfo(applicationInfo: Any) {
         }.get(applicationInfo).cast()
         packageName = applicationInfo.javaClass.field {
             name = FieldEnum.packageNameField
-        }.get(applicationInfo).cast()!!
+            superClass(true)
+        }.get(applicationInfo).cast()
     }
 
     override fun toString(): String {

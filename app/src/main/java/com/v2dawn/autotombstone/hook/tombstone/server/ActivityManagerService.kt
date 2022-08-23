@@ -8,11 +8,11 @@ import android.content.pm.PackageManager.NameNotFoundException
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.loggerD
-import com.highcapable.yukihookapi.hook.param.PackageParam
 import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
 
 
 class ActivityManagerService(
@@ -30,6 +30,7 @@ class ActivityManagerService(
         processList = ProcessList(
             activityManagerService.javaClass
                 .field {
+                    superClass(true)
                     name = FieldEnum.mProcessListField
                 }.get(activityManagerService).cast<Any>()!!
         )
@@ -37,14 +38,31 @@ class ActivityManagerService(
         activeServices = ActiveServices(
             activityManagerService.javaClass
                 .field {
+                    superClass(true)
                     name = FieldEnum.mServicesField
                 }.get(activityManagerService).cast<Any>()!!
         )
         context = activityManagerService.javaClass.field {
             name = FieldEnum.mContextField
+            superClass(true)
         }.get(activityManagerService).cast<Context>()!!
+
     }
 
+
+    fun isAppForeground(uid: Int): Boolean {
+        try {
+            return activityManagerService.javaClass
+                .method {
+                    name = MethodEnum.isAppForeground
+                    param(IntType)
+                    superClass(true)
+                }.get(activityManagerService).invoke<Boolean>(uid)!!
+        } catch (e: Exception) {
+            atsLogD("call isAppForeground method error")
+        }
+        return true
+    }
 
     fun isAppForeground(packageName: String): Boolean {
         val applicationInfo = getApplicationInfo(packageName) ?: return true
@@ -54,19 +72,10 @@ class ActivityManagerService(
             clazz = clazz.superclass
         }
         if (clazz == null || clazz.name != ClassEnum.ActivityManagerServiceClass) {
-            loggerD(msg = "super activityManagerService is not found")
+            atsLogD("super activityManagerService is not found")
             return true
         }
-        try {
-            return activityManagerService.javaClass
-                .method {
-                    name = MethodEnum.isAppForeground
-                    param(IntType)
-                }.get(activityManagerService).invoke<Boolean>(activityManagerService, uid)!!
-        } catch (e: Exception) {
-            loggerD(msg = "call isAppForeground method error")
-        }
-        return true
+        return isAppForeground(uid)
     }
 
     fun isSystem(packageName: String): Boolean {
@@ -87,7 +96,7 @@ class ActivityManagerService(
                 PackageManager.GET_UNINSTALLED_PACKAGES
             )
         } catch (e: NameNotFoundException) {
-            loggerD(msg = "$packageName not found")
+            atsLogD("$packageName not found")
         }
         return null
     }

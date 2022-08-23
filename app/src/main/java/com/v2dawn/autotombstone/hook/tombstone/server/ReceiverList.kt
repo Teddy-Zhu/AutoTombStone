@@ -2,8 +2,6 @@ package com.v2dawn.autotombstone.hook.tombstone.server;
 
 import com.highcapable.yukihookapi.hook.factory.field
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
-import de.robv.android.xposed.XposedHelpers;
-import java.io.File
 
 
 class ReceiverList(private val receiverList: Any) {

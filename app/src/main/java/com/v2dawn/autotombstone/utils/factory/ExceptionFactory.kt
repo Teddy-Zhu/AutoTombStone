@@ -3,6 +3,7 @@
 package com.v2dawn.autotombstone.utils.factory
 
 import com.highcapable.yukihookapi.hook.log.loggerE
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogE
 
 /**
  * 忽略异常返回值
@@ -57,5 +58,5 @@ inline fun <T> safeOf(default: T, result: () -> T) = try {
  * @param block 正常回调
  */
 inline fun <T> T.runInSafe(msg: String = "", block: () -> Unit) {
-    runCatching(block).onFailure { if (msg.isNotBlank()) loggerE(msg = msg, e = it) }
+    runCatching(block).onFailure { if (msg.isNotBlank()) atsLogE( msg, e = it) }
 }

@@ -11,7 +11,6 @@ import java.util.*
 
 
 class ProcessList(private val processList: Any) {
-    private val mutex = Any()
     public val processRecords = Collections.synchronizedList(ArrayList<ProcessRecord>())
     public fun reloadProcessRecord() {
         try {

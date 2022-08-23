@@ -26,7 +26,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
 import android.util.Base64
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.core.app.ActivityOptionsCompat
@@ -41,10 +40,8 @@ import com.highcapable.yukihookapi.hook.xposed.prefs.YukiHookModulePrefs
 import com.topjohnwu.superuser.Shell
 import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.model.AppItemData
-import com.v2dawn.autotombstone.ui.view.MaterialSwitch
 import com.v2dawn.autotombstone.utils.tool.SystemTool
 import java.io.ByteArrayOutputStream
-import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -627,8 +624,3 @@ fun Long.stampToDate(format: String = "yyyy-MM-dd HH:mm:ss") =
  */
 fun Any?.delayedRun(ms: Long = 150, it: () -> Unit) =
     runInSafe { Handler().postDelayed({ it() }, ms) }
-
-
-fun YukiHookModulePrefs.reload(){
-    isXSharePrefsReadable
-}

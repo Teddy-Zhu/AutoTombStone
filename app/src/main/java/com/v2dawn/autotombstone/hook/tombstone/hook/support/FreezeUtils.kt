@@ -4,18 +4,17 @@ import android.os.Process
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.loggerE
 import com.highcapable.yukihookapi.hook.log.loggerI
-import com.highcapable.yukihookapi.hook.param.HookParam
 import com.highcapable.yukihookapi.hook.param.PackageParam
 import com.highcapable.yukihookapi.hook.type.java.IntType
-import com.v2dawn.autotombstone.hook.tombstone.hook.AppStateChangeHook
 import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogE
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
 import java.io.BufferedReader
 import java.io.FileReader
 import java.io.IOException
 import java.io.PrintWriter
-import java.util.ArrayList
 
 class FreezeUtils(
     private val packageParam: PackageParam,
@@ -119,7 +118,7 @@ class FreezeUtils(
             writer.write(Integer.toString(`val`))
             writer.close()
         } catch (e: IOException) {
-            loggerE(msg = "Freezer V1 failed: ${e.message}", e = e)
+            atsLogE("Freezer V1 failed: ${e.message}", e = e)
         }
     }
 
@@ -134,7 +133,7 @@ class FreezeUtils(
             }
             writer.close()
         } catch (e: IOException) {
-            loggerE(msg = "Freezer V2 failed: ${e.message}", e = e)
+            atsLogE( "Freezer V2 failed: ${e.message}", e = e)
         }
     }
 
@@ -174,9 +173,9 @@ class FreezeUtils(
         stopSignal = freezerConfig.killSignal
         useKill = freezerConfig.isUseKill
         if (useKill) {
-            loggerI(msg = "Kill -$stopSignal")
+            atsLogI("Kill -$stopSignal")
         } else {
-            loggerI(msg = "Freezer $freezerVersion")
+            atsLogI("Freezer $freezerVersion")
         }
     }
 

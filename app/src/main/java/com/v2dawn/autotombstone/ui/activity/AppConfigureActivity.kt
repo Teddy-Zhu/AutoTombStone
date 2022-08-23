@@ -1,24 +1,14 @@
 package com.v2dawn.autotombstone.ui.activity
 
-import android.app.ActivityManager
-import android.app.ActivityManager.RunningAppProcessInfo
-import android.content.Context
 import android.content.Intent
-import android.content.pm.ApplicationInfo
-import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.BaseAdapter
-import androidx.core.app.ActivityOptionsCompat
-import androidx.core.app.SharedElementCallback
 import androidx.core.util.Pair
 import androidx.core.view.isVisible
 import com.highcapable.yukihookapi.YukiHookAPI
-import com.highcapable.yukihookapi.hook.factory.modulePrefs
 import com.v2dawn.autotombstone.R
-import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.databinding.ActivityAppConfigBinding
 import com.v2dawn.autotombstone.databinding.AdapterItemAppBinding
 import com.v2dawn.autotombstone.databinding.DiaAppFilterBinding
@@ -26,14 +16,10 @@ import com.v2dawn.autotombstone.model.AppItemData
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
 import com.v2dawn.autotombstone.utils.factory.*
 import com.v2dawn.autotombstone.utils.tool.SystemTool.getApps
-import com.v2dawn.autotombstone.utils.tool.SystemTool.isImportantSystemApp
-import com.v2dawn.autotombstone.utils.tool.SystemTool.isSystem
-import com.v2dawn.autotombstone.utils.tool.SystemTool.isXposedModule
 import com.v2dawn.autotombstone.utils.tool.SystemTool.loadApplicationInfos
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.ObservableEmitter
-import io.reactivex.rxjava3.core.ObservableOnSubscribe
 import io.reactivex.rxjava3.schedulers.Schedulers
 
 
@@ -136,7 +122,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                         binding.sysImpApp.isVisible = bean.isImportantSystemApp
                         binding.sysApp.isVisible = bean.isSystem
                         binding.xpModule.isVisible = bean.isXposedModule
-                        binding.appWhiteSwitch.setOnCheckedChangeListener { btn, b ->
+                        binding.appWhiteSwitch.setOnCheckedChangeListener { _, b ->
 //                            binding.appWhiteSwitch.isEnabled = b
                             //TODO notify adapter change enable
                             Log.d(TAG, "change app switch ${bean.name} ${position}")
@@ -244,12 +230,10 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         if (RESULT_OK == resultCode && data != null) {
             transitionBack = data
             Log.d(TAG, "reenter back")
-            if (transitionBack != null) {
-                val position = transitionBack.getIntExtra("position", -1)
-                if (position != -1) {
-                    // data
-                    updateListData(position)
-                }
+            val position = transitionBack.getIntExtra("position", -1)
+            if (position != -1) {
+                // data
+                updateListData(position)
             }
         }
         super.onActivityReenter(resultCode, data)
@@ -264,10 +248,10 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
 
     /** 装载或刷新本地数据 */
     private fun mockLocalData(force: Boolean) {
-        refreshAppList(showSystem, force)
+        refreshAppList(force)
     }
 
-    private fun refreshAppList(showSystem: Boolean, force: Boolean) {
+    private fun refreshAppList(force: Boolean) {
 
         Observable.create { emitter: ObservableEmitter<List<AppItemData>> ->
             loadApplicationInfos(packageManager, force)

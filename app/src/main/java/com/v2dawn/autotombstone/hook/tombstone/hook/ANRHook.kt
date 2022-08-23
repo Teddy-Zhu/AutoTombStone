@@ -8,13 +8,11 @@ import com.highcapable.yukihookapi.hook.param.HookParam
 import com.highcapable.yukihookapi.hook.type.android.ApplicationInfoClass
 import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
-import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryBlackSysAppsList
+import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
 import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
-import com.v2dawn.autotombstone.hook.tombstone.server.doNothing
-import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
-import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.*
 
-object ANRHook : YukiBaseHooker() {
+class ANRHook : YukiBaseHooker() {
 
     private fun needHook(param: HookParam): Boolean {
         // ANR进程为空就不处理
@@ -31,7 +29,7 @@ object ANRHook : YukiBaseHooker() {
         if (isSystem && isNotBlackSystem || processRecord.userId != ActivityManagerService.MAIN_USER) {
             return false
         }
-        loggerD(msg = "Keep ${(processRecord.processName ?: packageName)}")
+        atsLogD( "Keep ${(processRecord.processName ?: packageName)}")
         // 不处理
         return true
     }
@@ -60,7 +58,7 @@ object ANRHook : YukiBaseHooker() {
                 }
             }
 
-            loggerI(msg = "Auto keep process")
+            atsLogI( "Auto keep process")
         } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
             ClassEnum.ProcessRecordClass.hook {
                 injectMember {
@@ -76,8 +74,8 @@ object ANRHook : YukiBaseHooker() {
                     }
                 }
             }
-            loggerI(msg = "Android Q")
-            loggerI(msg = "Force keep process")
+            atsLogI( "Android Q")
+            atsLogI( "Force keep process")
         } else {
             ClassEnum.AppErrorsClass.hook {
                 injectMember {
@@ -94,8 +92,8 @@ object ANRHook : YukiBaseHooker() {
                     }
                 }
             }
-            loggerI(msg = "Android N-P")
-            loggerI(msg = "Force keep process")
+            atsLogI( "Android N-P")
+            atsLogI( "Force keep process")
         }
 
     }

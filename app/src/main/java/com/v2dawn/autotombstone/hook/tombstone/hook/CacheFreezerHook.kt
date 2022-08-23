@@ -1,17 +1,13 @@
 package com.v2dawn.autotombstone.hook.tombstone.hook;
 
 import android.os.Build
-import android.os.Parcel
-import android.os.Parcelable
-import com.highcapable.yukihookapi.hook.core.YukiMemberHookCreater
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.loggerI
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
-import de.robv.android.xposed.XC_MethodReplacement
-import de.robv.android.xposed.XposedHelpers
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
 
-object CacheFreezerHook : YukiBaseHooker() {
+class CacheFreezerHook : YukiBaseHooker() {
 
 
     override fun onHook() {
@@ -26,7 +22,7 @@ object CacheFreezerHook : YukiBaseHooker() {
                     replaceToFalse()
                 }
             }
-            loggerI(msg = "Disable cache freezer")
+            atsLogI( "Disable cache freezer")
         }
     }
 

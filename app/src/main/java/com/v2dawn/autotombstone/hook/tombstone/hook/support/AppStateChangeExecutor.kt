@@ -23,15 +23,13 @@ import com.v2dawn.autotombstone.hook.tombstone.hook.system.CpuGroup
 import com.v2dawn.autotombstone.hook.tombstone.hook.system.Stat
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.ApplicationInfo
-import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryBlackSysAppsList
-import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryKillProcessesList
-import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryWhiteAppList
-import com.v2dawn.autotombstone.hook.tombstone.server.FunctionTool.queryWhiteProcessesList
+import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
+import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryKillProcessesList
+import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAppList
+import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteProcessesList
 import com.v2dawn.autotombstone.hook.tombstone.server.ProcessList
 import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
-import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
-import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
-import de.robv.android.xposed.XposedHelpers
+import com.v2dawn.autotombstone.hook.tombstone.support.*
 import java.io.File
 import java.io.IOException
 import java.util.*
@@ -94,14 +92,12 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
 
 
     public fun reloadConfig(name: String) {
+        atsLogD("receive task for reload cache config :${name}")
         val fullName = RELOAD_TASK_PREFIX + name
         synchronized(fullName.intern()) {
             var timer = timerMap.getOrDefault(fullName, null)
 
-            if (timer != null) {
-                timer.cancel()
-                timer = null
-            }
+            timer?.cancel()
             timer = Timer()
             timer.schedule(object : TimerTask() {
                 override fun run() {
@@ -123,9 +119,9 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
                 }
             }
         } catch (e: RemoteException) {
-            loggerE(msg = "invoke error", e = e)
+            atsLogE("invoke error", e = e)
         }
-        loggerD(msg = "not found pid process:$pid")
+        atsLogD("not found pid process:$pid")
         return false
     }
 
@@ -135,16 +131,13 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
         synchronized(packageName.intern()) {
             var timer = timerMap.getOrDefault(packageName, null)
 
-            if (timer != null) {
-                timer.cancel()
-                timer = null
-            }
+            timer?.cancel()
             if (release) {
                 timerMap.remove(packageName)
                 try {
                     check(packageName, true)
                 } catch (e: Exception) {
-                    loggerE(msg = "call check failed", e = e)
+                    atsLogE("call check failed", e = e)
                 }
                 return true
             }
@@ -169,16 +162,16 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
                 if (pkg.startsWith(RELOAD_TASK_PREFIX)) {
                     val configNameValue = pkg.removePrefix(RELOAD_TASK_PREFIX)
                     val kv = configNameValue.split("#")
-                    loggerD(msg = "reload config ${kv}")
+                    atsLogD("reload config ${kv}")
                     packageParam.apply {
-                        prefs(kv[0]).reload()
+                        prefs(kv[0]).clearCache(kv[1])
                     }
                 } else {
                     check(pkg)
                 }
 
             } catch (eex: Exception) {
-                loggerE(msg = "task exe error", e = eex)
+                atsLogE("task exe error", e = eex)
             }
         }
     }
@@ -193,15 +186,15 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
         if ("android" == packageName) {
             return
         }
-        loggerD(msg = "check packageName=$packageName")
-        var isForeground: Boolean? = null
+        atsLogD("check packageName=$packageName")
+        var isForeground: Boolean?
         processList.reloadProcessRecord()
         val pid = getTargetProcessPid(packageName)
         if (pid == -1) {
-            loggerD(msg = "app $packageName not run, ignored")
+            atsLogD("app $packageName not run, ignored")
             return
         }
-        loggerD(msg = "packageName=$packageName, pid=$pid")
+        atsLogD("packageName=$packageName, pid=$pid")
         if (release) {
             isForeground = true
         } else {
@@ -211,7 +204,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
                 )
 
         }
-        loggerD(msg = " pkg :$packageName isForeground :$isForeground forceRelease :$release")
+        atsLogD(" pkg :$packageName isForeground :$isForeground forceRelease :$release")
         // 如果是进入前台
         if (isForeground) {
             // 后台APP移除
@@ -221,7 +214,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
         // 重要系统APP
         val isImportantSystemApp = isImportantSystemApp(packageName)
         if (isImportantSystemApp) {
-            loggerD(msg = "$packageName is important system app")
+            atsLogD("$packageName is important system app")
             return
         }
         // 系统APP
@@ -229,7 +222,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
         // 判断是否白名单系统APP
         packageParam.apply {
             if (isSystem && !queryBlackSysAppsList().contains(packageName)) {
-                loggerD(msg = "$packageName is white system app")
+                atsLogD("$packageName is white system app")
                 return
             }
         }
@@ -241,7 +234,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
             //暂停事件
             onPause(packageName, pid)
         }
-        loggerD(msg = "$packageName resolve end")
+        atsLogD("$packageName resolve end")
 
     }
 
@@ -268,7 +261,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
                 stat.policy() == 0
             }
         } catch (e: IOException) {
-            loggerD(msg = "pkg: $packageName not run, ignored")
+            atsLogD("pkg: $packageName not run, ignored")
             false
         }
     }
@@ -278,20 +271,19 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
 
         val uid = UserHandle::class.java.method {
             name = "getUserId"
-            emptyParam()
+            param(IntType)
         }.get().invoke<Int>(Binder.getCallingUid())!!
         try {
             usm.setAppInactive(pkgName, idle, uid)
-            loggerD(
-                msg =
-                " set pkg " + pkgName + " idle: " + idle + " result:" + usm.isAppInactive(
+            atsLogD(
+                " set pkg $pkgName idle: $idle result:" + usm.isAppInactive(
                     pkgName,
                     uid,
                     context.opPackageName
                 )
             )
         } catch (e: RemoteException) {
-            loggerE(msg = "call appidle error", e = e)
+            atsLogE("call appidle error", e = e)
         }
     }
 
@@ -307,10 +299,10 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
         if (targetProcessRecords.isEmpty()) {
             return
         }
-        loggerD(msg = "$packageName resumed process")
+        atsLogD("$packageName resumed process")
         // 遍历目标进程列表
         for (targetProcessRecord in targetProcessRecords) {
-            loggerD(msg = "process: $targetProcessRecord")
+            atsLogD("process: $targetProcessRecord")
 
             // 确保APP不在后台
             if (backgroundApps.contains(packageName)) {
@@ -324,6 +316,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
                         IntType, IntType,
                         StringType, IntType
                     )
+                    superClass(true)
                 }.get(appOpsService)
                     .call(
                         OP_WAKE_LOCK,
@@ -390,13 +383,13 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
      * @param packageName 包名
      */
     private fun onPause(packageName: String, mainPid: Int) {
-        loggerD(msg = "$packageName paused processing")
+        atsLogD("$packageName paused processing")
 
         //double check 应用是否前台
         val isAppForeground = isForeground(packageName, mainPid)
         // 如果是前台应用就不处理
         if (isAppForeground) {
-            loggerD(msg = "$packageName is in foreground")
+            atsLogD("$packageName is in foreground")
             return
         }
 
@@ -421,13 +414,14 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
             val processName: String = targetProcessRecord.processName!!
             if (processName == packageName) {
 
-                ClassEnum.AppOpsServiceClass.javaClass
+                appOpsService.javaClass
                     .method {
                         name = MethodEnum.setMode
                         param(
                             IntType, IntType,
                             StringType, IntType
                         )
+                        superClass(true)
                     }.get(appOpsService)
                     .call(
                         OP_WAKE_LOCK,
@@ -475,12 +469,12 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
             // 如果杀死进程列表包含进程名
             packageParam.apply {
                 if (queryKillProcessesList().contains(processName)) {
-                    loggerD(msg = "$processName kill")
+                    atsLogD("$processName kill")
                     // 杀死进程
                     freezeUtils.kill(pid)
                 } else {
-                    loggerD(msg = "$processName freezer")
-                    loggerD(msg = "process: $targetProcessRecord")
+                    atsLogD("$processName freezer")
+                    atsLogD("process: $targetProcessRecord")
                     freezeUtils.freezer(targetProcessRecord)
                 }
             }
@@ -528,7 +522,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
                 packageParam.apply {
 
                     if (queryWhiteProcessesList().contains(processName)) {
-                        loggerD(msg = "white process $processName")
+                        atsLogD("white process $processName")
                         skip = true
                         return@apply
                     }
@@ -537,7 +531,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
                             .contains(packageName) && !queryKillProcessesList()
                             .contains(processName)
                     ) {
-                        loggerD(msg = "white app process $processName")
+                        atsLogD("white app process $processName")
                         skip = true
                         return@apply
                     }
@@ -571,7 +565,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
                 PackageManager.GET_UNINSTALLED_PACKAGES
             )
         } catch (e: PackageManager.NameNotFoundException) {
-            loggerD(msg = "$packageName not found")
+            atsLogD("$packageName not found")
         }
         return null
     }
@@ -583,7 +577,13 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
         activityManagerService = ActivityManagerService(ams)
         processList = activityManagerService.processList
         context = activityManagerService.context
-        appOpsService = XposedHelpers.getObjectField(ams, "mAppOpsService")
+        appOpsService = ams.javaClass.field {
+            name = "mAppOpsService"
+            type = "com.android.server.appop.AppOpsService"
+            superClass(true)
+        }.get(ams).cast<Any>()!!
+
+        atsLogD("appOpsService classs: ${appOpsService.javaClass}")
 //        mUsageStatsService = context.getSystemService(Context.USAGE_STATS_SERVICE)
 
         //        this.mUsageStatsService = context.getSystemService(context.USAGE_STATS_SERVICE);
@@ -602,7 +602,7 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
             }
 
         } catch (e: ClassNotFoundException) {
-            loggerE(msg = "", e = e)
+            atsLogE("", e = e)
             usm =
                 IUsageStatsManager.Stub.asInterface(context.getSystemService(Context.USAGE_STATS_SERVICE) as IBinder?)
         }
@@ -620,9 +620,9 @@ class AppStateChangeExecutor(private val packageParam: PackageParam, ams: Any) :
             }.get().cast<Int>()!!
 
         } catch (e: Exception) {
-            loggerE(msg = "app state change executor start error", e = e)
+            atsLogE("app state change executor start error", e = e)
         }
-        loggerI(msg = "ams class:" + ams.javaClass)
+        atsLogI("ams class:" + ams.javaClass)
         for (declaredMethod in activityManagerService.activeServices.activeServices.javaClass.declaredMethods) {
             if ("stopServiceLocked" == declaredMethod.name && declaredMethod.parameterTypes.size == 1) {
                 useOriginMethod = false

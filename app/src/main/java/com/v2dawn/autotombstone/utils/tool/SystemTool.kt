@@ -1,10 +1,7 @@
 package com.v2dawn.autotombstone.utils.tool
 
-import android.content.Context
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.content.pm.PackageManager.NameNotFoundException
 
 
 object SystemTool {

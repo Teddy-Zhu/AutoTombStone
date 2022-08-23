@@ -19,5 +19,12 @@
     <string name="ignore_process">忽略</string>
     <string name="force_process">强制停止</string>
     <string name="follow_process">跟随App</string>
+    <string name="app_functions_setting">App功能开关</string>
+    <string name="enable_debug">开启debug日志</string>
+    <string name="force_kill_19">force kill 19</string>
+    <string name="force_kill_20">force kill 20</string>
+    <string name="use_freezer_api">use freezer api</string>
+    <string name="use_freezer_v2">use freezer v2</string>
+    <string name="use_freezer_v1">use freezer v1</string>
 
 </resources>

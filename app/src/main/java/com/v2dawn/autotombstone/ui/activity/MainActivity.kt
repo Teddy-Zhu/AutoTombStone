@@ -45,19 +45,26 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
         // Your code here.
         binding.appConfigButton.setOnClickListener {
-            val dictChars = mutableListOf<Char>().apply {
-                "123456789zxcvbnmasdfghjklqwertyuiop".forEach {
-                    this.add(it)
-                }
-            }
-            val randomStr =
-                StringBuilder().apply { (1..((10..30).random())).onEach { append(dictChars.random()) } }
-            Log.d(TAG, "randomStr:$randomStr")
-            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.TEST_RANDOM, randomStr.toString())
             navigate<AppConfigureActivity>()
-//            navigate<AppConfigureDetailActivity>()
         }
-//
+        binding.enableDebug.setOnCheckedChangeListener { _, checked ->
+            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_MODULE_LOG, checked)
+        }
+        binding.kill19.setOnCheckedChangeListener { _, checked ->
+            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FORCE_KILL_19, checked)
+        }
+        binding.kill20.setOnCheckedChangeListener { _, checked ->
+            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FORCE_KILL_20, checked)
+        }
+        binding.freezerApi.setOnCheckedChangeListener { _, checked ->
+            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_API, checked)
+        }
+        binding.freezerV2.setOnCheckedChangeListener { _, checked ->
+            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_V2, checked)
+        }
+        binding.freezerV1.setOnCheckedChangeListener { _, checked ->
+            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_V1, checked)
+        }
 
         val confs = ArrayList<String>().apply {
             add(ConfigConst.COMMON_NAME)
@@ -68,12 +75,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
         for (conf in confs) {
             val l1: SharedPreferences.OnSharedPreferenceChangeListener =
-                SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences: SharedPreferences, s: String ->
+                SharedPreferences.OnSharedPreferenceChangeListener { _, s: String ->
                     prefChange(conf, s)
                 }
 
             prefsListeners[conf] = l1
-            getPrefs(conf).registerOnSharedPreferenceChangeListener(l1)
+            modulePrefs(conf).registerChangeListener(l1)
         }
 
     }
@@ -82,19 +89,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         Log.d(TAG, "pref change $name , $key")
     }
 
-    private fun getPrefs(prefsName: String): SharedPreferences {
-        try {
-            return getSharedPreferences(prefsName, Context.MODE_WORLD_READABLE)
-                ?: error("If you want to use module prefs, you must set the context instance first")
-        } catch (_: Throwable) {
-            return getSharedPreferences(prefsName, Context.MODE_PRIVATE)
-                ?: error("If you want to use module prefs, you must set the context instance first")
-        }
-    }
-
     override fun onDestroy() {
         for (entry in prefsListeners.entries) {
-            getPrefs(entry.key).unregisterOnSharedPreferenceChangeListener(entry.value)
+            modulePrefs(entry.key).unRegisterChangeListener(entry.value)
         }
         super.onDestroy()
     }

@@ -1,7 +1,5 @@
 package com.v2dawn.autotombstone.hook.tombstone.server;
 
-import de.robv.android.xposed.XposedHelpers;
-
 object Event {
     const val EventClass = "android.app.usage.UsageEvents.Event"
     const val ACTIVITY_RESUMED = "ACTIVITY_RESUMED"

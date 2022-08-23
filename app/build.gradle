@@ -56,8 +56,8 @@ dependencies {
 
 
     compileOnly 'de.robv.android.xposed:api:82'
-    implementation 'com.highcapable.yukihookapi:api:1.0.93'
-    ksp 'com.highcapable.yukihookapi:ksp-xposed:1.0.93'
+    implementation 'com.highcapable.yukihookapi:api:1.0.94'
+    ksp 'com.highcapable.yukihookapi:ksp-xposed:1.0.94'
     implementation 'com.github.duanhong169:drawabletoolbox:1.0.7'
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.5.0'
