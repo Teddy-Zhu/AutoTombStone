@@ -57,8 +57,9 @@ class AppStateChangeExecutor(
                     continue
                 }
                 packageParam.apply {
-                    atsLogI("reload config:$kv[0],key:$kv[1]")
-                    prefs.name(kv[0]).reload(kv[1])
+                    atsLogI("reload config:${kv[0]},key:${kv[1]}")
+                    prefs.name(kv[0]).clearCache(kv[1])
+//                    prefs.name(kv[0]).clearCache()
                 }
             }
         } catch (e: Exception) {

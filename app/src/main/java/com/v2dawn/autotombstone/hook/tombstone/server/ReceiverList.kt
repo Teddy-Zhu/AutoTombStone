@@ -9,13 +9,13 @@ class ReceiverList(private val receiverList: Any) {
     fun clear() {
         receiverList.javaClass
             .field { name = FieldEnum.appField }
-            .get(processRecord).set(null)
+            .get(receiverList).set(null)
     }
 
     fun restore(app: Any?) {
         receiverList.javaClass
             .field { name = FieldEnum.appField }
-            .get(processRecord).set(app)
+            .get(receiverList).set(app)
     }
 
     fun isNull(): Boolean {

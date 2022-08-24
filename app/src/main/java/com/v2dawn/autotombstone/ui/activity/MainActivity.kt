@@ -17,7 +17,8 @@ import com.v2dawn.autotombstone.BuildConfig
 import com.v2dawn.autotombstone.R
 import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.databinding.ActivityMainBinding
-import com.v2dawn.autotombstone.hook.tombstone.support.AtsConfigService
+import com.android.server.AtsConfigService
+import com.highcapable.yukihookapi.hook.factory.classOf
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
 import com.v2dawn.autotombstone.utils.factory.navigate
@@ -118,7 +119,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         Log.d(TAG, "pref change $configName , $key")
         try {
             if (atsConfigService == null) {
-                val binder: IBinder = ClassEnum.ServiceManagerClass.javaClass
+                val binder: IBinder = classOf(ClassEnum.ServiceManagerClass,Thread.currentThread().contextClassLoader)
                     .method {
                         name = "getService"
                         param(StringType)

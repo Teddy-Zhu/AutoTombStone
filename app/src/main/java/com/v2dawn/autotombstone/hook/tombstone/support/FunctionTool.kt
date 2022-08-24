@@ -22,13 +22,11 @@ fun atsLogI(msg: String) {
 }
 
 fun atsLogD(msg: String) {
-    loggerD(msg="debug var:${YukiHookModulePrefs.InnerOpen.instance().name(ConfigConst.COMMON_NAME)
-        .get(ConfigConst.ENABLE_MODULE_LOG)}")
-//    if (YukiHookModulePrefs.InnerOpen.instance().name(ConfigConst.COMMON_NAME)
-//            .get(ConfigConst.ENABLE_MODULE_LOG)
-//    ) {
+    if (YukiHookModulePrefs.InnerOpen.instance().name(ConfigConst.COMMON_NAME)
+            .get(ConfigConst.ENABLE_MODULE_LOG)
+    ) {
         loggerD(msg = msg)
-//    }
+    }
 }
 
 fun atsLogE(msg: String, e: Throwable) {

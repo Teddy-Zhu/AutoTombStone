@@ -3,6 +3,7 @@ package com.v2dawn.autotombstone.hook.tombstone.hook
 import android.content.Context
 import android.os.Build
 import android.service.notification.StatusBarNotification
+import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
@@ -73,6 +74,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
                     val appStateChangeExecutor =
                         AppStateChangeExecutor(this@AppStateChangeHook, instance)
                     AppStateChangeExecutor.instance = appStateChangeExecutor
+                    registerAtsConfigService(appStateChangeExecutor)
 //                    registerAtsConfigService(appStateChangeExecutor);
                     hookOther(appStateChangeExecutor)
                 }
@@ -152,6 +154,22 @@ class AppStateChangeHook() : YukiBaseHooker() {
             }
 
 
+    }
+
+    private fun registerAtsConfigService(appStateChangeExecutor: AppStateChangeExecutor) {
+        atsLogI("register atsConfigService")
+        if (ActivityThreadHook.serviceRegistered) return
+
+
+        val atsConfigService = AtsConfigService(appStateChangeExecutor)
+
+        ClassEnum.ServiceManagerClass.clazz
+            .method {
+                name = "addService"
+                param(StringType, IBinderClass, Boolean::class.javaPrimitiveType!!)
+            }.get().call(AtsConfigService.serviceName, atsConfigService, true)
+
+        ActivityThreadHook.serviceRegistered = true
     }
 
 }
