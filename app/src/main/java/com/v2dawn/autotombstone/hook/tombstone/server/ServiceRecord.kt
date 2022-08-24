@@ -18,7 +18,7 @@ class ServiceRecord(val serviceRecord: Any) {
     private val name: ComponentName? = serviceRecord.javaClass.field {
         name = "name"
     }.get(serviceRecord).cast<ComponentName>()
-    private val serviceInfo: ServiceInfo = ServiceInfo(
+    val serviceInfo: ServiceInfo = ServiceInfo(
         serviceRecord.javaClass.field {
             name = "serviceInfo"
         }.get(serviceRecord).cast()!!

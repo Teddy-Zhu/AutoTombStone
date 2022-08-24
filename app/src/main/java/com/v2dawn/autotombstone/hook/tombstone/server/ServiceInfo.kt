@@ -4,7 +4,7 @@ import com.highcapable.yukihookapi.hook.factory.field
 
 
 class ServiceInfo(private val serviceInfo: Any) {
-    private val name: String = serviceInfo.javaClass.field {
+    val name: String = serviceInfo.javaClass.field {
         name = "name"
         superClass(true)
     }.get(serviceInfo).string()

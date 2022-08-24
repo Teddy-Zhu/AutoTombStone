@@ -47,7 +47,7 @@ class AppStateChangeExecutor(
 
     private val reloadThread: Thread = Thread {
         try {
-            atsLogD("task queue obj: ${reloadConfigQueue.hashCode()}")
+            atsLogI("task queue obj: ${reloadConfigQueue.hashCode()}")
 
             while (true) {
                 val params = reloadConfigQueue.take()
@@ -176,12 +176,9 @@ class AppStateChangeExecutor(
     }
 
     private fun check(packageName: String, release: Boolean = false) {
-
-
         if ("android" == packageName) {
             return
         }
-        atsLogD("check packageName=$packageName")
         var isForeground: Boolean?
         processList.reloadProcessRecord()
         val pid = getTargetProcessPid(packageName)
@@ -197,7 +194,7 @@ class AppStateChangeExecutor(
                 isForeground(packageName, pid) && isAppForeground(packageName)
 
         }
-        atsLogD(" pkg :$packageName isForeground :$isForeground forceRelease :$release")
+//        atsLogD(" pkg :$packageName isForeground :$isForeground forceRelease :$release")
         // 如果是进入前台
         if (isForeground) {
             // 后台APP移除
@@ -227,7 +224,7 @@ class AppStateChangeExecutor(
             //暂停事件
             onPause(packageName, pid)
         }
-        atsLogD("$packageName resolve end")
+        atsLogD("$packageName resolve process end")
 
     }
 
@@ -251,11 +248,7 @@ class AppStateChangeExecutor(
     }
 
     private fun isAppForeground(pid: Int): Boolean {
-        return try {
-            iActivityManager.isAppForeground(pid)
-        } catch (e: Exception) {
-            activityManagerService.isAppForeground(pid)
-        }
+        return activityManagerService.isAppForeground(pid)
     }
 
     private fun isForeground(packageName: String, pid: Int): Boolean {
@@ -268,7 +261,7 @@ class AppStateChangeExecutor(
                 stat.policy() == 0
             }
         } catch (e: IOException) {
-            atsLogD("pkg: $packageName not run, ignored")
+            atsLogD("packageName=$packageName not run, ignored")
             false
         }
     }
@@ -283,7 +276,7 @@ class AppStateChangeExecutor(
         try {
             usm.setAppInactive(pkgName, idle, uid)
             atsLogD(
-                " set package $pkgName idle: $idle"
+                "set packageName=$pkgName idle: $idle"
             )
         } catch (e: RemoteException) {
             atsLogE("call app idle error", e = e)
@@ -362,7 +355,7 @@ class AppStateChangeExecutor(
     private fun stopServiceLocked(processRecord: ProcessRecord, enqueueOomAdj: Boolean) {
         for (processServiceRecord in processRecord.processServiceRecords) {
             for (mService in processServiceRecord.mServices) {
-                atsLogD("try stop service ${mService.processName}")
+                atsLogD("try to stop service=${mService.serviceInfo.name}")
                 if (useOriginMethod) {
                     activityManagerService.activeServices.activeServices.javaClass
                         .method {
@@ -387,7 +380,7 @@ class AppStateChangeExecutor(
      * @param packageName 包名
      */
     private fun onPause(packageName: String, mainPid: Int) {
-        atsLogD("$packageName paused processing")
+        atsLogD("packageName=$packageName paused process start")
 
         //double check 应用是否前台
         val isAppForeground = isForeground(packageName, mainPid)
