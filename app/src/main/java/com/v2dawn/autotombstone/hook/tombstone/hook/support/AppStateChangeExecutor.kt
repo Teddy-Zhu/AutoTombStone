@@ -6,6 +6,7 @@ import android.app.IActivityManager
 import android.app.usage.IUsageStatsManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Binder
 import android.os.IBinder
@@ -22,7 +23,6 @@ import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.hook.tombstone.hook.system.CpuGroup
 import com.v2dawn.autotombstone.hook.tombstone.hook.system.Stat
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
-import com.v2dawn.autotombstone.hook.tombstone.server.ApplicationInfo
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryKillProcessesList
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAppList
@@ -194,9 +194,7 @@ class AppStateChangeExecutor(
             isForeground = true
         } else {
             isForeground =
-                isForeground(packageName, pid) && activityManagerService.isAppForeground(
-                    packageName
-                )
+                isForeground(packageName, pid) && isAppForeground(packageName)
 
         }
         atsLogD(" pkg :$packageName isForeground :$isForeground forceRelease :$release")
@@ -246,13 +244,27 @@ class AppStateChangeExecutor(
         return -1
     }
 
+    private fun isAppForeground(packageName: String): Boolean {
+        val applicationInfo = getApplicationInfo(packageName) ?: return true
+        val uid = applicationInfo.uid
+        return isAppForeground(uid)
+    }
+
+    private fun isAppForeground(pid: Int): Boolean {
+        return try {
+            iActivityManager.isAppForeground(pid)
+        } catch (e: Exception) {
+            activityManagerService.isAppForeground(pid)
+        }
+    }
+
     private fun isForeground(packageName: String, pid: Int): Boolean {
         return try {
             if (SYS_SUPPORTS_SCHEDGROUPS) {
-                val cpuGroup: CpuGroup = CpuGroup.get(pid)
+                val cpuGroup: CpuGroup = CpuGroup[pid]
                 cpuGroup.isForeground
             } else {
-                val stat: Stat = Stat.get(pid)
+                val stat: Stat = Stat[pid]
                 stat.policy() == 0
             }
         } catch (e: IOException) {
@@ -271,14 +283,10 @@ class AppStateChangeExecutor(
         try {
             usm.setAppInactive(pkgName, idle, uid)
             atsLogD(
-                " set pkg $pkgName idle: $idle result:" + usm.isAppInactive(
-                    pkgName,
-                    uid,
-                    context.opPackageName
-                )
+                " set package $pkgName idle: $idle"
             )
         } catch (e: RemoteException) {
-            atsLogE("call appidle error", e = e)
+            atsLogE("call app idle error", e = e)
         }
     }
 
@@ -297,7 +305,7 @@ class AppStateChangeExecutor(
         atsLogD("$packageName resumed process")
         // 遍历目标进程列表
         for (targetProcessRecord in targetProcessRecords) {
-            atsLogD("process: $targetProcessRecord")
+//            atsLogD("process: $targetProcessRecord")
 
             // 确保APP不在后台
             if (backgroundApps.contains(packageName)) {
@@ -354,6 +362,7 @@ class AppStateChangeExecutor(
     private fun stopServiceLocked(processRecord: ProcessRecord, enqueueOomAdj: Boolean) {
         for (processServiceRecord in processRecord.processServiceRecords) {
             for (mService in processServiceRecord.mServices) {
+                atsLogD("try stop service ${mService.processName}")
                 if (useOriginMethod) {
                     activityManagerService.activeServices.activeServices.javaClass
                         .method {
@@ -384,7 +393,7 @@ class AppStateChangeExecutor(
         val isAppForeground = isForeground(packageName, mainPid)
         // 如果是前台应用就不处理
         if (isAppForeground) {
-            atsLogD("$packageName is in foreground")
+            atsLogD("$packageName is in foreground ignored")
             return
         }
 
@@ -469,7 +478,6 @@ class AppStateChangeExecutor(
                     freezeUtils.kill(pid)
                 } else {
                     atsLogD("$processName freezer")
-                    atsLogD("process: $targetProcessRecord")
                     freezeUtils.freezer(targetProcessRecord)
                 }
             }
@@ -497,7 +505,7 @@ class AppStateChangeExecutor(
                 if (processRecord.userId != ActivityManagerService.MAIN_USER) {
                     continue
                 }
-                val applicationInfo: ApplicationInfo = processRecord.applicationInfo!!
+                val applicationInfo: ApplicationInfo = processRecord.applicationInfo ?: continue
                 // 如果包名和事件的包名不同就不处理
                 if (applicationInfo.packageName != packageName) {
                     continue
@@ -578,7 +586,7 @@ class AppStateChangeExecutor(
             superClass(true)
         }.get(ams).cast<Any>()!!
 
-        atsLogD("appOpsService classs: ${appOpsService.javaClass}")
+        atsLogD("appOpsService class: ${appOpsService.javaClass}")
 //        mUsageStatsService = context.getSystemService(Context.USAGE_STATS_SERVICE)
 
         //        this.mUsageStatsService = context.getSystemService(context.USAGE_STATS_SERVICE);

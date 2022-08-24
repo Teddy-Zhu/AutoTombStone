@@ -1,6 +1,7 @@
 package com.v2dawn.autotombstone.hook.tombstone.server;
 
 
+import android.content.ComponentName
 import com.highcapable.yukihookapi.hook.factory.field
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 
@@ -10,15 +11,13 @@ class ServiceRecord(val serviceRecord: Any) {
         serviceRecord.javaClass.field {
             name = "isForeground"
         }.get(serviceRecord).boolean()
-    private val processName: String =
+    val processName: String =
         serviceRecord.javaClass.field {
             name = FieldEnum.processNameField
-        }.get(serviceRecord).toString()
-    private val name: ComponentName = ComponentName(
-        serviceRecord.javaClass.field {
-            name = "name"
-        }.get(serviceRecord).cast()!!
-    )
+        }.get(serviceRecord).string()
+    private val name: ComponentName? = serviceRecord.javaClass.field {
+        name = "name"
+    }.get(serviceRecord).cast<ComponentName>()
     private val serviceInfo: ServiceInfo = ServiceInfo(
         serviceRecord.javaClass.field {
             name = "serviceInfo"

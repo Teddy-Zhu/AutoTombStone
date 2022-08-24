@@ -43,17 +43,22 @@ android {
     lintOptions {
         checkReleaseBuilds false
     }
+    android.applicationVariants.all {
+        variant ->
+            variant.outputs.all {
+                outputFileName = "${rootProject.name}-v${variant.versionName}.apk"
+            }
+    }
 }
 
 dependencies {
     implementation "com.github.topjohnwu.libsu:core:3.1.2"
     implementation 'com.squareup.okhttp3:okhttp:5.0.0-alpha.7'
 
-    implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
-    implementation 'io.reactivex.rxjava3:rxjava:3.0.3'
-    implementation 'com.jakewharton.rxbinding4:rxbinding:4.0.0'
     implementation 'com.github.zawadz88.materialpopupmenu:material-popup-menu:4.1.0'
 
+    implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
+    implementation 'io.reactivex.rxjava3:rxjava:3.0.3'
 
     compileOnly 'de.robv.android.xposed:api:82'
     implementation 'com.highcapable.yukihookapi:api:1.0.94'

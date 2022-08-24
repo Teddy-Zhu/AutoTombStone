@@ -1,5 +1,6 @@
 package com.v2dawn.autotombstone.hook.tombstone.server;
 
+import android.content.pm.ApplicationInfo
 import android.os.Build
 import com.highcapable.yukihookapi.hook.factory.field
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
@@ -47,9 +48,8 @@ class ProcessRecord(val processRecord: Any) {
 
         userId = processRecord.javaClass.field { name = FieldEnum.userIdField }
             .get(processRecord).int()
-        applicationInfo =
-            ApplicationInfo(processRecord.javaClass.field { name = FieldEnum.infoField }
-                .get(processRecord).cast<Any>()!!)
+        applicationInfo = processRecord.javaClass.field { name = FieldEnum.infoField }
+            .get(processRecord).cast<ApplicationInfo>()
         val ms = processRecord.javaClass.field { name = FieldEnum.mServicesField }
             .get(processRecord).cast<Any>()!!
         processServiceRecords.clear()

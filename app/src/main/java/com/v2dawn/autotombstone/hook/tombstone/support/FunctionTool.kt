@@ -1,6 +1,8 @@
 package com.v2dawn.autotombstone.hook.tombstone.support;
 
+import android.content.pm.ApplicationInfo
 import com.highcapable.yukihookapi.hook.core.YukiMemberHookCreater
+import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.log.loggerD
 import com.highcapable.yukihookapi.hook.log.loggerE
 import com.highcapable.yukihookapi.hook.log.loggerI
@@ -8,7 +10,6 @@ import com.highcapable.yukihookapi.hook.log.loggerW
 import com.highcapable.yukihookapi.hook.param.PackageParam
 import com.highcapable.yukihookapi.hook.xposed.prefs.YukiHookModulePrefs
 import com.v2dawn.autotombstone.config.ConfigConst
-import com.v2dawn.autotombstone.hook.tombstone.server.ApplicationInfo
 
 
 fun YukiMemberHookCreater.MemberHookCreater.doNothing() {
@@ -37,11 +38,22 @@ fun atsLogW(msg: String) {
     loggerW(msg = msg)
 }
 
+fun ApplicationInfo.isSystem(): Boolean {
+    return FunctionTool.isSystem(this)
+}
 
 object FunctionTool {
 
+    val FLAG_SYSTEM: Int = android.content.pm.ApplicationInfo::class.java.field {
+        name = "FLAG_SYSTEM"
+    }.get().int();
+    val FLAG_UPDATED_SYSTEM_APP: Int = android.content.pm.ApplicationInfo::class.java.field {
+        name = "FLAG_UPDATED_SYSTEM_APP"
+    }.get().int();
+
+
     fun isSystem(applicationInfo: ApplicationInfo): Boolean {
-        return applicationInfo.flags and (applicationInfo.FLAG_SYSTEM or applicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+        return applicationInfo.flags and (FLAG_SYSTEM or FLAG_UPDATED_SYSTEM_APP) != 0
     }
 
     fun PackageParam.queryWhiteAppList(): Set<String> {

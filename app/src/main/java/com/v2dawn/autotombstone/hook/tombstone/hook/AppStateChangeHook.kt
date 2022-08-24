@@ -1,14 +1,12 @@
 package com.v2dawn.autotombstone.hook.tombstone.hook
 
-import android.content.Context
+import android.content.ComponentName
 import android.os.Build
 import android.service.notification.StatusBarNotification
 import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.log.loggerD
-import com.highcapable.yukihookapi.hook.log.loggerI
 import com.highcapable.yukihookapi.hook.param.HookParam
 import com.highcapable.yukihookapi.hook.type.android.ComponentNameClass
 import com.highcapable.yukihookapi.hook.type.android.IBinderClass
@@ -17,10 +15,11 @@ import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
-import com.v2dawn.autotombstone.hook.tombstone.server.ComponentName
 import com.v2dawn.autotombstone.hook.tombstone.server.Event
-import com.v2dawn.autotombstone.hook.tombstone.support.*
-import java.util.concurrent.ArrayBlockingQueue
+import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
 
 class AppStateChangeHook() : YukiBaseHooker() {
     private val ACTIVITY_RESUMED: Int =
@@ -28,37 +27,49 @@ class AppStateChangeHook() : YukiBaseHooker() {
     private val ACTIVITY_PAUSED: Int =
         Event.EventClass.clazz.field { name = Event.ACTIVITY_PAUSED }.get(null).cast<Int>()!!
 
-    private val SIMPLE = 1
-    private val DIFFICULT = 2
-
     companion object {
+        var serviceRegistered = false
     }
 
     private fun stateBeforeHookMethod(
         param: HookParam,
-        type: Int,
         appStateChangeExecutor: AppStateChangeExecutor
     ) {
-        // 开启一个新线程防止避免阻塞主线程
-        Thread(Runnable {
-            // 获取切换事件
-            val event = param.args(2).int()
-            // AMS有两个方法，但参数不同
-            val packageName =
-                if (type == SIMPLE) param.args(0).string() else ComponentName(
-                    param.args(0).cast<Any>()!!
-                ).packageName
-            atsLogD("event=$event packageName=$packageName")
-            val userId = param.args(1).int()
-            if (userId != ActivityManagerService.MAIN_USER) {
-                return@Runnable
+
+        // 获取切换事件
+        val event = param.args(2).int()
+        // AMS有两个方法，但参数不同
+        val packageName = param.args(0).cast<ComponentName>()!!.packageName
+        val userId = param.args(1).int()
+        if (userId != ActivityManagerService.MAIN_USER) {
+            return
+        }
+        if ("android" == packageName) {
+            return
+        }
+
+        val eventText: String
+        when (event) {
+            ACTIVITY_PAUSED -> {
+                if (AppStateChangeExecutor.backgroundApps.contains(packageName)) {
+                    return
+                }
+                eventText = "paused"
             }
-            if (event != ACTIVITY_PAUSED && event != ACTIVITY_RESUMED) {
-                // 不是进入前台或者后台就不处理
-                return@Runnable
+            ACTIVITY_RESUMED -> {
+                if (!AppStateChangeExecutor.backgroundApps.contains(packageName)) {
+                    return
+                }
+                eventText = "resumed"
             }
-            appStateChangeExecutor.execute(packageName, event == ACTIVITY_RESUMED)
-        }).start()
+            else -> {
+                return
+            }
+        }
+        atsLogD("packageName=$packageName $eventText")
+
+        appStateChangeExecutor.execute(packageName, event == ACTIVITY_RESUMED)
+
     }
 
     override fun onHook() {
@@ -95,7 +106,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
                         )
                     }
                     beforeHook {
-                        stateBeforeHookMethod(this, DIFFICULT, appStateChangeExecutor)
+                        stateBeforeHookMethod(this, appStateChangeExecutor)
                     }
                 }
             }
@@ -111,7 +122,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
                         )
                     }
                     beforeHook {
-                        stateBeforeHookMethod(this, DIFFICULT, appStateChangeExecutor)
+                        stateBeforeHookMethod(this, appStateChangeExecutor)
                     }
                 }
             }
@@ -158,7 +169,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
 
     private fun registerAtsConfigService(appStateChangeExecutor: AppStateChangeExecutor) {
         atsLogI("register atsConfigService")
-        if (ActivityThreadHook.serviceRegistered) return
+        if (serviceRegistered) return
 
 
         val atsConfigService = AtsConfigService(appStateChangeExecutor)
@@ -169,7 +180,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
                 param(StringType, IBinderClass, Boolean::class.javaPrimitiveType!!)
             }.get().call(AtsConfigService.serviceName, atsConfigService, true)
 
-        ActivityThreadHook.serviceRegistered = true
+        serviceRegistered = true
     }
 
 }

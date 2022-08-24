@@ -66,15 +66,8 @@ class ActivityManagerService(
 
     fun isAppForeground(packageName: String): Boolean {
         val applicationInfo = getApplicationInfo(packageName) ?: return true
+
         val uid = applicationInfo.uid
-        var clazz: Class<*>? = activityManagerService.javaClass
-        while (clazz != null && clazz.name != Any::class.java.name && clazz.name != ClassEnum.ActivityManagerServiceClass) {
-            clazz = clazz.superclass
-        }
-        if (clazz == null || clazz.name != ClassEnum.ActivityManagerServiceClass) {
-            atsLogD("super activityManagerService is not found")
-            return true
-        }
         return isAppForeground(uid)
     }
 

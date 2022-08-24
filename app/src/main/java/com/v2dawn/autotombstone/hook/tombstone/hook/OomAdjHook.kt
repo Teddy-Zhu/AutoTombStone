@@ -1,15 +1,17 @@
 package com.v2dawn.autotombstone.hook.tombstone.hook;
 
+import android.content.pm.ApplicationInfo
 import android.os.Build
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.loggerD
-import com.highcapable.yukihookapi.hook.log.loggerW
 import com.highcapable.yukihookapi.hook.param.HookParam
 import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.highcapable.yukihookapi.hook.type.java.LongType
 import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
-import com.v2dawn.autotombstone.hook.tombstone.server.*
+import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
+import com.v2dawn.autotombstone.hook.tombstone.server.ProcessList
+import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
+import com.v2dawn.autotombstone.hook.tombstone.server.ProcessStateRecord
 import com.v2dawn.autotombstone.hook.tombstone.support.*
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAppList
@@ -50,7 +52,7 @@ class OomAdjHook :
             return
         }
         // 如果是系统应用并且不是系统黑名单就不处理
-        if (applicationInfo.uid < 10000 || applicationInfo.isSystem && !queryBlackSysAppsList()
+        if (applicationInfo.uid < 10000 || applicationInfo.isSystem() && !queryBlackSysAppsList()
                 .contains(packageName)
         ) {
             return

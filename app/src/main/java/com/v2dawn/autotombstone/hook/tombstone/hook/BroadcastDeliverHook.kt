@@ -13,6 +13,7 @@ import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAp
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteProcessesList
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
+import com.v2dawn.autotombstone.hook.tombstone.support.isSystem
 
 class BroadcastDeliverHook : YukiBaseHooker() {
 
@@ -44,7 +45,7 @@ class BroadcastDeliverHook : YukiBaseHooker() {
             return null
         }
         // 如果是系统应用并且不是系统黑名单就不处理
-        if (applicationInfo.uid < 10000 || applicationInfo.isSystem && !queryBlackSysAppsList()
+        if (applicationInfo.uid < 10000 || applicationInfo.isSystem() && !queryBlackSysAppsList()
                 .contains(packageName)
         ) {
             return null
@@ -62,7 +63,7 @@ class BroadcastDeliverHook : YukiBaseHooker() {
         // 暂存
         val app: Any = processRecord.processRecord
 
-        atsLogD("${processRecord.processName.toString()}  clear broadcast")
+        atsLogD("${processRecord.processName}  clear broadcast")
         // 清楚广播
         receiverList.clear()
 

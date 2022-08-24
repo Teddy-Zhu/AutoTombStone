@@ -20,7 +20,7 @@ class ANRHook : YukiBaseHooker() {
         // ANR进程
         val processRecord = ProcessRecord(arg0)
         // 是否系统进程
-        val isSystem: Boolean = processRecord.applicationInfo?.isSystem ?: false
+        val isSystem: Boolean = processRecord.applicationInfo?.isSystem() ?: false
         // 进程对应包名
         val packageName: String = processRecord.applicationInfo?.packageName!!
         val isNotBlackSystem: Boolean = queryBlackSysAppsList().contains(packageName)
