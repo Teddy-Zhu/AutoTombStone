@@ -9,19 +9,36 @@ import java.util.*
 class AtsConfigService(val appStateChangeExecutor: AppStateChangeExecutor) :
     IAtsConfigService.Stub() {
 
+    val timerMap = Collections.synchronizedMap(HashMap<String, Timer?>())
+
     companion object {
         public val serviceName = "tv_tuner_resource_mgr" //Context.TV_TUNER_RESOURCE_MGR_SERVICE
     }
 
     override fun configChange(name: String?, key: String?) {
-        atsLogI("reload config $name , key:$key")
-        Timer().schedule(
-            object : TimerTask() {
-                override fun run() {
-                    appStateChangeExecutor.reloadConfigQueue.put("$name#$key")
-                }
-            }, 5000
-        )
+        if (name == null || key == null) {
+            return
+        }
+        val uk = "$name#$key"
+        synchronized(uk.intern()) {
+            var timer = timerMap[uk]
+
+            timer?.cancel()
+            atsLogI("reload config $name , key:$key")
+
+            timer = Timer().apply {
+                schedule(
+                    object : TimerTask() {
+                        override fun run() {
+                            timerMap.remove(uk)
+                            appStateChangeExecutor.reloadConfigQueue.put(uk)
+                        }
+                    }, 5000
+                )
+            }
+            timerMap[uk] = timer
+        }
+
     }
 
 

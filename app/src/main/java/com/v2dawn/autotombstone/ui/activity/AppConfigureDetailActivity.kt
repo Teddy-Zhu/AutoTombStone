@@ -99,11 +99,14 @@ class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>(
 
         var packageInfo: PackageInfo =
             packageManager.getPackageInfo(appItemData.packageName, PackageManager.GET_SERVICES)
-        for (service in packageInfo.services) {
-            if (appItemData.packageName != service.processName) {
-                services.add(service.processName)
+        if (packageInfo.services != null) {
+            for (service in packageInfo.services) {
+                if (appItemData.packageName != service.processName) {
+                    services.add(service.processName)
+                }
             }
         }
+
         val whiteProcesses = getWhiteProcesses();
         val killProcesses = getKillProcesses();
 
