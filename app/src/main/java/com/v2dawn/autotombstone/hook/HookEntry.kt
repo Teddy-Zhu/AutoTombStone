@@ -47,6 +47,7 @@ class HookEntry : IYukiHookXposedInit {
             loadHooker(BroadcastDeliverHook())
 //            loadHooker(OomAdjHook())
             loadHooker(ANRHook())
+            loadHooker(TaskTrimHook())
 
         }
 //        loadApp(BuildConfig.APPLICATION_ID) {

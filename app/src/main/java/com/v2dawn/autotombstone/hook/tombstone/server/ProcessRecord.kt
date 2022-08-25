@@ -14,7 +14,7 @@ class ProcessRecord(val processRecord: Any) {
     val applicationInfo: ApplicationInfo?
     public val processServiceRecords: MutableList<ProcessServiceRecord>
 
-    val mWindowProcessController: WindowProcessController
+    var mWindowProcessController: WindowProcessController? = null
 
     fun setCurAdj(curAdj: Int) {
         processRecord.javaClass
@@ -24,7 +24,10 @@ class ProcessRecord(val processRecord: Any) {
     }
 
     fun hasRunningActivity(packageName: String): Boolean {
-        return mWindowProcessController.hasRunningActivity(packageName)
+        return mWindowProcessController?.hasRunningActivity(packageName) ?: false
+    }
+    fun isSandboxProcess(): Boolean {
+        return uid >= 99000
     }
 
     override fun toString(): String {
@@ -57,12 +60,12 @@ class ProcessRecord(val processRecord: Any) {
         applicationInfo = processRecord.javaClass.field { name = FieldEnum.infoField }
             .get(processRecord).cast<ApplicationInfo>()
 
-        mWindowProcessController = WindowProcessController(
-            processRecord.javaClass.method {
-                name = "getWindowProcessController"
-                emptyParam()
-            }.get(processRecord).invoke<Any>()!!
-        )
+//        mWindowProcessController = WindowProcessController(
+//            processRecord.javaClass.method {
+//                name = "getWindowProcessController"
+//                emptyParam()
+//            }.get(processRecord).invoke<Any>()!!
+//        )
 
         val ms = processRecord.javaClass.field { name = FieldEnum.mServicesField }
             .get(processRecord).cast<Any>()!!

@@ -6,7 +6,7 @@ import com.highcapable.yukihookapi.hook.factory.field
 class ServiceInfo(private val serviceInfo: Any) {
     val name: String = serviceInfo.javaClass.field {
         name = "name"
-        superClass(true)
+        superClass()
     }.get(serviceInfo).string()
 
     override fun toString(): String {

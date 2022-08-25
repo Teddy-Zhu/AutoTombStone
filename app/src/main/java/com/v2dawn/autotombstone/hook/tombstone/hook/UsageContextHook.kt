@@ -19,10 +19,10 @@ class UsageContextHook : YukiBaseHooker() {
                 beforeHook {
                     val context = args().first().cast<Context>() ?: return@beforeHook
                     if (PackageManager.PERMISSION_GRANTED == context.checkCallingPermission("android.permission.CHANGE_APP_IDLE_STATE")) {
-                        atsLogD( "has permission ignored")
+                        atsLogI("has permission hook context ignored")
 
                     } else {
-                        atsLogI( "proxy usage context")
+
                         args(0).set(
                             ContextProxy(
                                 context,
@@ -33,5 +33,6 @@ class UsageContextHook : YukiBaseHooker() {
                 }
             }
         }
+        atsLogI("hooked proxy usage context")
     }
 }

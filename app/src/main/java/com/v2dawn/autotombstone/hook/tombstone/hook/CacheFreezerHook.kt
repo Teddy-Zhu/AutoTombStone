@@ -12,7 +12,7 @@ class CacheFreezerHook : YukiBaseHooker() {
 
     override fun onHook() {
         // 禁用暂停执行已缓存
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.R) {
             ClassEnum.CachedAppOptimizerClass.hook {
                 injectMember {
                     method {
@@ -22,7 +22,7 @@ class CacheFreezerHook : YukiBaseHooker() {
                     replaceToFalse()
                 }
             }
-            atsLogI( "Disable cache freezer")
+            atsLogI("Disable cache freezer")
         }
     }
 

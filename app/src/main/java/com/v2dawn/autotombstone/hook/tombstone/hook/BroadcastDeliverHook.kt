@@ -8,13 +8,10 @@ import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.BroadcastFilter
+import com.v2dawn.autotombstone.hook.tombstone.support.*
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
-import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAppList
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteProcessesList
-import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
-import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
-import com.v2dawn.autotombstone.hook.tombstone.support.isSystem
 
 class BroadcastDeliverHook : YukiBaseHooker() {
 
@@ -111,5 +108,7 @@ class BroadcastDeliverHook : YukiBaseHooker() {
                 }
             }
         }
+
+        atsLogI("hooked broadcast")
     }
 }

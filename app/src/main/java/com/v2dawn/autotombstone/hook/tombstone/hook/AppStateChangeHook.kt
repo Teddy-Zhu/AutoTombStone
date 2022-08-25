@@ -20,6 +20,8 @@ import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.Event
+import com.v2dawn.autotombstone.hook.tombstone.server.PowerManagerService
+import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
@@ -98,6 +100,8 @@ class AppStateChangeHook() : YukiBaseHooker() {
                     registerAtsConfigService(appStateChangeExecutor)
 //                    registerAtsConfigService(appStateChangeExecutor);
                     hookOther(appStateChangeExecutor)
+                    hookProcessKill(appStateChangeExecutor)
+                    hookPowerService(appStateChangeExecutor)
                 }
             }
         }
@@ -215,8 +219,6 @@ class AppStateChangeHook() : YukiBaseHooker() {
                     }
                 }
             }
-        }
-        ClassEnum.MediaFocusControlClass.hook {
             injectMember {
                 allMethods("abandonAudioFocus")
                 afterHook {
@@ -230,11 +232,52 @@ class AppStateChangeHook() : YukiBaseHooker() {
                 }
             }
         }
+        atsLogI("hooked audio focus")
+    }
 
+    private fun hookProcessKill(appStateChangeExecutor: AppStateChangeExecutor) {
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
+            ClassEnum.ProcessRecordClass.hook {
+                injectMember {
+                    method {
+                        name = "setKilled"
+                        param(Boolean::class.javaPrimitiveType!!)
+                    }
+                    beforeHook {
+                        val processRecord = ProcessRecord(instance)
+                        if (processRecord.isSandboxProcess()) {
+                            return@beforeHook
+                        }
 
+                        val packageName: String =
+                            processRecord.applicationInfo?.packageName ?: return@beforeHook
 
-        atsLogI("hook audio manager")
+                        if (AppStateChangeExecutor.backgroundApps.contains(packageName)) {
+                            appStateChangeExecutor.stopPackage(packageName)
+                        }
+                    }
+                }
+            }
+            atsLogI("hook process record to kill")
+        }
 
+    }
+
+    private fun hookPowerService(appStateChangeExecutor: AppStateChangeExecutor) {
+        ClassEnum.PowerManagerServiceClass.hook {
+            injectMember {
+                method {
+                    name = "onStart"
+                    emptyParam()
+                }
+                afterHook {
+                    atsLogI("hooked inject pms")
+                    val pms = PowerManagerService(instance)
+                    appStateChangeExecutor.pms = pms
+                }
+            }
+        }
+        atsLogI("hooked pms")
     }
 
     private fun registerAtsConfigService(appStateChangeExecutor: AppStateChangeExecutor) {

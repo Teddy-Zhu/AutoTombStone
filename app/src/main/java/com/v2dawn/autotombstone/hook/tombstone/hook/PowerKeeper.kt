@@ -36,9 +36,9 @@ class PowerKeeper : YukiBaseHooker() {
                     }
                 }
 
-            atsLogI( "Disable MIUI clearApp")
+            atsLogI("Disable MIUI clearApp")
         } catch (throwable: Throwable) {
-            atsLogI( "Disable MIUI clearApp failed: ${throwable.message}")
+            atsLogI("Disable MIUI clearApp failed: ${throwable.message}")
         }
         try {
 
@@ -51,10 +51,10 @@ class PowerKeeper : YukiBaseHooker() {
                     replaceToFalse()
                 }
             }
+            atsLogI("Disable millet")
 
-            atsLogI( "Disable millet")
         } catch (throwable: Throwable) {
-            atsLogI( "Disable millet failed: ${throwable.message}")
+            atsLogI("Disable millet failed: ${throwable.message}")
         }
     }
 

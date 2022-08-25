@@ -9,6 +9,7 @@ import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.loggerD
 import com.highcapable.yukihookapi.hook.type.java.IntType
+import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
@@ -30,7 +31,7 @@ class ActivityManagerService(
         processList = ProcessList(
             activityManagerService.javaClass
                 .field {
-                    superClass(true)
+                    superClass()
                     name = FieldEnum.mProcessListField
                 }.get(activityManagerService).cast<Any>()!!
         )
@@ -38,13 +39,13 @@ class ActivityManagerService(
         activeServices = ActiveServices(
             activityManagerService.javaClass
                 .field {
-                    superClass(true)
+                    superClass()
                     name = FieldEnum.mServicesField
                 }.get(activityManagerService).cast<Any>()!!
         )
         context = activityManagerService.javaClass.field {
             name = FieldEnum.mContextField
-            superClass(true)
+            superClass()
         }.get(activityManagerService).cast<Context>()!!
 
     }
@@ -56,7 +57,7 @@ class ActivityManagerService(
                 .method {
                     name = MethodEnum.isAppForeground
                     param(IntType)
-                    superClass(true)
+                    superClass()
                 }.get(activityManagerService).invoke<Boolean>(uid)!!
         } catch (e: Exception) {
             atsLogD("call isAppForeground method error")
@@ -79,6 +80,13 @@ class ActivityManagerService(
     fun isImportantSystemApp(packageName: String): Boolean {
         val applicationInfo = getApplicationInfo(packageName) ?: return true
         return applicationInfo.uid < 10000
+    }
+
+    fun forceStopPackage(packageName: String) {
+        activityManagerService.javaClass.method {
+            name = "forceStopPackage"
+            param(StringType, IntType)
+        }.get(activityManagerService).invoke<Boolean>(packageName, MAIN_USER)
     }
 
     fun getApplicationInfo(packageName: String): ApplicationInfo? {

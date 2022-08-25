@@ -24,6 +24,7 @@ import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.hook.tombstone.hook.system.CpuGroup
 import com.v2dawn.autotombstone.hook.tombstone.hook.system.Stat
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
+import com.v2dawn.autotombstone.hook.tombstone.server.PowerManagerService
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryKillProcessesList
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAppList
@@ -36,6 +37,7 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
+import kotlin.collections.ArrayList
 
 @SuppressLint("ServiceCast")
 class AppStateChangeExecutor(
@@ -75,6 +77,7 @@ class AppStateChangeExecutor(
     private val context: Context
     private val processList: ProcessList
     private val appOpsService: Any
+    var pms: PowerManagerService? = null
 
     //    private val mUsageStatsService: Any
     private val activityManagerService: ActivityManagerService
@@ -225,19 +228,18 @@ class AppStateChangeExecutor(
 //                pid
 //            )
             val sysForeground = isAppForeground(packageName)
-            val hasOverlay = hasOverlayUiPackages.contains(packageName)
-            val hasActivity = targetProcessRecord.hasRunningActivity(packageName)
-            isForeground =
-                sysForeground || hasOverlayUiPackages.contains(packageName) ||
-                        hasAudioFocusPackages.contains(packageName)
+//            val hasOverlay = hasOverlayUiPackages.contains(packageName)
+//            val hasActivity = targetProcessRecord.hasRunningActivity(packageName)
+            isForeground = sysForeground
+//                    || hasOverlayUiPackages.contains(packageName) || hasAudioFocusPackages.contains(packageName)
 
-            val importance = acService.javaClass.method {
-                name = "getPackageImportance"
-                param(StringType)
-            }.get(acService).int(packageName)
-            atsLogD("[$packageName] sys:${sysForeground},hasOverlay:${hasOverlay},hasActivity:${hasActivity},import:${importance}")
+//            val importance = acService.javaClass.method {
+//                name = "getPackageImportance"
+//                param(StringType)
+//            }.get(acService).int(packageName)
+//            atsLogD("[$packageName] sys:${sysForeground},hasOverlay:${hasOverlay},hasActivity:${hasActivity},import:${importance}")
+            atsLogD("[$packageName] sys:${sysForeground}")
 
-            atsLogD("[$packageName] acs:${targetProcessRecord.mWindowProcessController}")
         }
 //        atsLogD(" pkg :$packageName isForeground :$isForeground forceRelease :$release")
 
@@ -268,10 +270,9 @@ class AppStateChangeExecutor(
             //继续事件
             onResume(packageName)
         } else {
-            // 后台应用添加包名
-            backgroundApps.add(packageName)
+
             //暂停事件
-            onPause(packageName, pid)
+            onPause(packageName)
         }
         atsLogD("[$packageName] resolve end")
 
@@ -288,6 +289,10 @@ class AppStateChangeExecutor(
         }
 
         return null
+    }
+
+    public fun stopPackage(packageName: String) {
+        activityManagerService.forceStopPackage(packageName)
     }
 
     /**
@@ -367,7 +372,7 @@ class AppStateChangeExecutor(
                         IntType, IntType,
                         StringType, IntType
                     )
-                    superClass(true)
+                    superClass()
                 }.get(appOpsService)
                     .call(
                         OP_WAKE_LOCK,
@@ -410,7 +415,7 @@ class AppStateChangeExecutor(
     private fun stopServiceLocked(processRecord: ProcessRecord, enqueueOomAdj: Boolean) {
         for (processServiceRecord in processRecord.processServiceRecords) {
             for (mService in processServiceRecord.mServices) {
-                atsLogD("try to stop service[${mService.serviceInfo.name}]")
+                atsLogD("[${mService.serviceInfo.name}] try to stop")
                 if (useOriginMethod) {
                     activityManagerService.activeServices.activeServices.javaClass
                         .method {
@@ -434,18 +439,20 @@ class AppStateChangeExecutor(
      *
      * @param packageName 包名
      */
-    private fun onPause(packageName: String, mainPid: Int) {
+    private fun onPause(packageName: String) {
         atsLogD("[$packageName] onPause handle start")
 
         //double check 应用是否前台
         val isAppForeground =
-            isForeground(packageName, mainPid) || hasOverlayUiPackages.contains(packageName) ||
+            isAppForeground(packageName) || hasOverlayUiPackages.contains(packageName) ||
                     hasAudioFocusPackages.contains(packageName)
         // 如果是前台应用就不处理
         if (isAppForeground) {
             atsLogD("[$packageName] is foreground ignored")
             return
         }
+        // 后台应用添加包名
+        backgroundApps.add(packageName)
 
         val targetProcessRecords: List<ProcessRecord> =
             getTargetProcessRecords(packageName)
@@ -453,7 +460,7 @@ class AppStateChangeExecutor(
         if (targetProcessRecords.isEmpty()) {
             return
         }
-        setAppIdle(packageName, true)
+
         // 遍历目标进程
         for (targetProcessRecord in targetProcessRecords) {
             // 应用又进入前台了
@@ -473,7 +480,7 @@ class AppStateChangeExecutor(
                             IntType, IntType,
                             StringType, IntType
                         )
-                        superClass(true)
+                        superClass()
                     }.get(appOpsService)
                     .call(
                         OP_WAKE_LOCK,
@@ -529,8 +536,13 @@ class AppStateChangeExecutor(
                     freezeUtils.freezer(targetProcessRecord)
                 }
             }
-
         }
+        packageParam.apply {
+            if (!queryWhiteProcessesList().contains(packageName)) {
+                pms?.release(packageName)
+            }
+        }
+
         setAppIdle(packageName, true)
 
         atsLogD("[$packageName] onPause handle end")
@@ -575,7 +587,7 @@ class AppStateChangeExecutor(
                 packageParam.apply {
 
                     if (queryWhiteProcessesList().contains(processName)) {
-                        atsLogD("white process $processName")
+                        atsLogD("[$processName] white process ignored")
                         skip = true
                         return@apply
                     }
@@ -584,7 +596,7 @@ class AppStateChangeExecutor(
                             .contains(packageName) && !queryKillProcessesList()
                             .contains(processName)
                     ) {
-                        atsLogD("[$processName] white app process")
+                        atsLogD("[$processName] white app process ignored")
                         skip = true
                         return@apply
                     }
@@ -633,7 +645,7 @@ class AppStateChangeExecutor(
         appOpsService = ams.javaClass.field {
             name = "mAppOpsService"
             type = "com.android.server.appop.AppOpsService"
-            superClass(true)
+            superClass()
         }.get(ams).cast<Any>()!!
 
         acService = context.getSystemService(Context.ACTIVITY_SERVICE)
