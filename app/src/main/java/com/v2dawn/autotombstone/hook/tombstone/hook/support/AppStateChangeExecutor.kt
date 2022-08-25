@@ -77,7 +77,6 @@ class AppStateChangeExecutor(
     private val context: Context
     private val processList: ProcessList
     private val appOpsService: Any
-    var pms: PowerManagerService? = null
 
     //    private val mUsageStatsService: Any
     private val activityManagerService: ActivityManagerService
@@ -268,7 +267,7 @@ class AppStateChangeExecutor(
         if (isForeground) {
             backgroundApps.remove(packageName)
             //继续事件
-            onResume(packageName)
+            onResume(packageName, lastBackground)
         } else {
 
             //暂停事件
@@ -348,7 +347,7 @@ class AppStateChangeExecutor(
      *
      * @param packageName 包名
      */
-    private fun onResume(packageName: String) {
+    private fun onResume(packageName: String, lastBackground: Boolean) {
         atsLogD("[$packageName] onResume handle start")
         val targetProcessRecords: List<ProcessRecord> =
             getTargetProcessRecords(packageName)
@@ -361,7 +360,7 @@ class AppStateChangeExecutor(
 //            atsLogD("process: $targetProcessRecord")
 
             // 确保APP不在后台
-            if (backgroundApps.contains(packageName)) {
+            if (backgroundApps.contains(packageName) && !lastBackground) {
                 return
             }
             if (targetProcessRecord.processName.equals(packageName)) {
@@ -444,8 +443,8 @@ class AppStateChangeExecutor(
 
         //double check 应用是否前台
         val isAppForeground =
-            isAppForeground(packageName) || hasOverlayUiPackages.contains(packageName) ||
-                    hasAudioFocusPackages.contains(packageName)
+            isAppForeground(packageName)
+//                    || hasOverlayUiPackages.contains(packageName) || hasAudioFocusPackages.contains(packageName)
         // 如果是前台应用就不处理
         if (isAppForeground) {
             atsLogD("[$packageName] is foreground ignored")
@@ -539,7 +538,7 @@ class AppStateChangeExecutor(
         }
         packageParam.apply {
             if (!queryWhiteProcessesList().contains(packageName)) {
-                pms?.release(packageName)
+                PowerManagerService.instance?.release(packageName)
             }
         }
 
@@ -627,7 +626,7 @@ class AppStateChangeExecutor(
             val packageManager = context.packageManager
             return packageManager.getApplicationInfo(
                 packageName,
-                PackageManager.GET_UNINSTALLED_PACKAGES
+                PackageManager.MATCH_UNINSTALLED_PACKAGES
             )
         } catch (e: PackageManager.NameNotFoundException) {
             atsLogD("[$packageName] not found")

@@ -94,7 +94,7 @@ class ActivityManagerService(
             val packageManager = context.packageManager
             return packageManager.getApplicationInfo(
                 packageName,
-                PackageManager.GET_UNINSTALLED_PACKAGES
+                PackageManager.MATCH_UNINSTALLED_PACKAGES
             )
         } catch (e: NameNotFoundException) {
             atsLogD("$packageName not found")

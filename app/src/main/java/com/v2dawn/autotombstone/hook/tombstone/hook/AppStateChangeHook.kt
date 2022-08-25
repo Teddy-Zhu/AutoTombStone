@@ -101,7 +101,6 @@ class AppStateChangeHook() : YukiBaseHooker() {
 //                    registerAtsConfigService(appStateChangeExecutor);
                     hookOther(appStateChangeExecutor)
                     hookProcessKill(appStateChangeExecutor)
-                    hookPowerService(appStateChangeExecutor)
                 }
             }
         }
@@ -261,23 +260,6 @@ class AppStateChangeHook() : YukiBaseHooker() {
             atsLogI("hook process record to kill")
         }
 
-    }
-
-    private fun hookPowerService(appStateChangeExecutor: AppStateChangeExecutor) {
-        ClassEnum.PowerManagerServiceClass.hook {
-            injectMember {
-                method {
-                    name = "onStart"
-                    emptyParam()
-                }
-                afterHook {
-                    atsLogI("hooked inject pms")
-                    val pms = PowerManagerService(instance)
-                    appStateChangeExecutor.pms = pms
-                }
-            }
-        }
-        atsLogI("hooked pms")
     }
 
     private fun registerAtsConfigService(appStateChangeExecutor: AppStateChangeExecutor) {

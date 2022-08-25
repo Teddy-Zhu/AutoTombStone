@@ -69,6 +69,16 @@ class FreezeUtils(
         }
     }
 
+    fun freezeBinder(pid: Int, frozen: Boolean) {
+        packageParam.apply {
+            ClassEnum.CachedAppOptimizerClass.clazz
+                .method {
+                    name = "freezeBinder"
+                    param(IntType, Boolean::class.javaPrimitiveType!!)
+                }.get().int(pid, frozen)
+        }
+    }
+
     fun setProcessFrozen(pid: Int, uid: Int, frozen: Boolean) {
         packageParam.apply {
             ClassEnum.ProcessClass
@@ -133,15 +143,17 @@ class FreezeUtils(
             }
             writer.close()
         } catch (e: IOException) {
-            atsLogE( "Freezer V2 failed: ${e.message}", e = e)
+            atsLogE("Freezer V2 failed: ${e.message}", e = e)
         }
     }
 
     fun thawPid(pid: Int, uid: Int) {
+        freezeBinder(pid, false)
         setFreezeAction(pid, uid, false)
     }
 
     fun freezePid(pid: Int, uid: Int) {
+        freezeBinder(pid, true)
         setFreezeAction(pid, uid, true)
     }
 

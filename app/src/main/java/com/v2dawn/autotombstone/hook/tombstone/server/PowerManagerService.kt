@@ -14,6 +14,10 @@ class PowerManagerService(raw: Any) : ForkOrigin(raw) {
 //    private val wakeLockMap: HashMap<String, ArrayList<WakeLock>>
 
 
+    companion object {
+        var instance: PowerManagerService? = null
+    }
+
     init {
 
 //        val wls = getRawData().javaClass.field {
@@ -27,6 +31,7 @@ class PowerManagerService(raw: Any) : ForkOrigin(raw) {
 //                ArrayList<WakeLock>()
 //            }.add(wk)
 //        }
+        instance = this
     }
 
 

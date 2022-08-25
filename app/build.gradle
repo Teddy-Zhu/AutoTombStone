@@ -18,6 +18,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            minifyEnabled rootProject.ext.debugEnableR8
+            shrinkResources rootProject.ext.debugEnableR8
+            zipAlignEnabled rootProject.ext.debugEnableR8
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
         release {
             minifyEnabled rootProject.ext.enableR8
             shrinkResources rootProject.ext.enableR8

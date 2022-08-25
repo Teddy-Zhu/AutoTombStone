@@ -5,7 +5,7 @@ import com.highcapable.yukihookapi.hook.param.PackageParam
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 
 
-class BroadcastQueue(packageParam: PackageParam, private val broadcastQueue: Any) {
+class BroadcastQueue(private val broadcastQueue: Any) {
 
     private val activityManagerService: ActivityManagerService = ActivityManagerService(
         broadcastQueue.javaClass.field {
