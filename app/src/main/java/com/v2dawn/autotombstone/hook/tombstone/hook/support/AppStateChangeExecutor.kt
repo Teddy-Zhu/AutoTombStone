@@ -8,6 +8,7 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Binder
 import android.os.IBinder
 import android.os.RemoteException
@@ -83,11 +84,15 @@ class AppStateChangeExecutor(
     private val iActivityManager: IActivityManager
 
     private var useOriginMethod = true
+    private val acService: Any
 
     companion object {
 
         var instance: AppStateChangeExecutor? = null
         public val backgroundApps = hashSetOf<String>()
+
+        val hasOverlayUiPackages = hashSetOf<String>()
+        val hasAudioFocusPackages = hashSetOf<String>()
 
         const val DELAY_TIME: Long = 5000
         private val SYS_SUPPORTS_SCHEDGROUPS = File("/dev/cpuctl/tasks").exists()
@@ -112,21 +117,47 @@ class AppStateChangeExecutor(
 
     }
 
-    public fun execute(pid: Int, hasOverlayUi: Boolean): Boolean {
-        if (hasOverlayUi) {
-            return false
-        }
+    private fun findPackageName(pid: Int): String? {
         try {
             for (runningAppProcess in iActivityManager.getRunningAppProcesses()) {
                 if (runningAppProcess.pid == pid) {
-                    return execute(runningAppProcess.processName)
+                    return runningAppProcess.processName
                 }
             }
         } catch (e: RemoteException) {
             atsLogE("invoke error", e = e)
         }
-        atsLogD("not found pid process:$pid")
-        return false
+        return null
+    }
+
+    public fun executeByAudioFocus(packageName: String, hasFocus: Boolean): Boolean {
+
+        atsLogD("[$packageName] ${if (hasFocus) "request" else "lost"} audio focus")
+        if (hasFocus) {
+            hasAudioFocusPackages.add(packageName)
+            return true
+        } else {
+            hasAudioFocusPackages.remove(packageName)
+            return execute(packageName)
+        }
+    }
+
+
+    public fun executeByOverlayUi(pid: Int, hasOverlayUi: Boolean): Boolean {
+
+        val pkgName = findPackageName(pid);
+        if (pkgName == null) {
+            atsLogD("not found pid process:$pid")
+            return false
+        }
+        atsLogD("[$pkgName] ${if (hasOverlayUi) "has" else "remove"} overlay ui")
+        if (hasOverlayUi) {
+            hasOverlayUiPackages.add(pkgName)
+            return true
+        } else {
+            hasOverlayUiPackages.remove(pkgName)
+            return execute(pkgName)
+        }
     }
 
     @JvmOverloads
@@ -162,9 +193,7 @@ class AppStateChangeExecutor(
         while (true) {
             try {
                 val pkg = queue.take()
-
                 check(pkg)
-
             } catch (eex: Exception) {
                 atsLogE("task exe error", e = eex)
             }
@@ -181,76 +210,102 @@ class AppStateChangeExecutor(
         }
         var isForeground: Boolean?
         processList.reloadProcessRecord()
-        val pid = getTargetProcessPid(packageName)
-        if (pid == -1) {
-            atsLogD("app $packageName not run, ignored")
+        val targetProcessRecord = getTargetProcessPid(packageName)
+        if (targetProcessRecord == null) {
+            atsLogD("[$packageName] not run, ignored")
             return
         }
-        atsLogD("packageName=$packageName, pid=$pid")
+        val pid = targetProcessRecord.pid
+        atsLogD("[$packageName] pid=$pid")
         if (release) {
             isForeground = true
         } else {
+//            val cpuforeground = isForeground(
+//                packageName,
+//                pid
+//            )
+            val sysForeground = isAppForeground(packageName)
+            val hasOverlay = hasOverlayUiPackages.contains(packageName)
+            val hasActivity = targetProcessRecord.hasRunningActivity(packageName)
             isForeground =
-                isForeground(packageName, pid) && isAppForeground(packageName)
+                sysForeground || hasOverlayUiPackages.contains(packageName) ||
+                        hasAudioFocusPackages.contains(packageName)
 
+            val importance = acService.javaClass.method {
+                name = "getPackageImportance"
+                param(StringType)
+            }.get(acService).int(packageName)
+            atsLogD("[$packageName] sys:${sysForeground},hasOverlay:${hasOverlay},hasActivity:${hasActivity},import:${importance}")
+
+            atsLogD("[$packageName] acs:${targetProcessRecord.mWindowProcessController}")
         }
 //        atsLogD(" pkg :$packageName isForeground :$isForeground forceRelease :$release")
-        // 如果是进入前台
-        if (isForeground) {
-            // 后台APP移除
-            backgroundApps.remove(packageName)
-        }
 
+        val lastBackground = backgroundApps.contains(packageName)
         // 重要系统APP
         val isImportantSystemApp = isImportantSystemApp(packageName)
         if (isImportantSystemApp) {
-            atsLogD("$packageName is important system app")
-            return
+            atsLogD("[$packageName] is important system app")
+            if (!lastBackground) {
+                return
+            }
         }
         // 系统APP
         val isSystem = isSystem(packageName)
         // 判断是否白名单系统APP
         packageParam.apply {
             if (isSystem && !queryBlackSysAppsList().contains(packageName)) {
-                atsLogD("$packageName is white system app")
+                atsLogD("[$packageName] is white system app")
+                if (!lastBackground) {
+                    return
+                }
                 return
             }
         }
+
         if (isForeground) {
             backgroundApps.remove(packageName)
             //继续事件
             onResume(packageName)
         } else {
+            // 后台应用添加包名
+            backgroundApps.add(packageName)
             //暂停事件
             onPause(packageName, pid)
         }
-        atsLogD("$packageName resolve process end")
+        atsLogD("[$packageName] resolve end")
 
     }
 
-    private fun getTargetProcessPid(packageName: String): Int {
+    private fun getTargetProcessPid(packageName: String): ProcessRecord? {
         synchronized(processList.processRecords) {
             for (processRecord in processList.processRecords) {
                 // 如果包名和事件的包名不同就不处理
                 if (packageName == processRecord.processName) {
-                    return processRecord.pid
+                    return processRecord
                 }
             }
         }
 
-        return -1
+        return null
     }
 
+    /**
+     * by system
+     */
     private fun isAppForeground(packageName: String): Boolean {
         val applicationInfo = getApplicationInfo(packageName) ?: return true
         val uid = applicationInfo.uid
         return isAppForeground(uid)
     }
 
-    private fun isAppForeground(pid: Int): Boolean {
-        return activityManagerService.isAppForeground(pid)
+    private fun isAppForeground(uid: Int): Boolean {
+        return activityManagerService.isAppForeground(uid)
     }
 
+    /**
+     * by cpuset
+     */
     private fun isForeground(packageName: String, pid: Int): Boolean {
         return try {
             if (SYS_SUPPORTS_SCHEDGROUPS) {
@@ -276,7 +331,7 @@ class AppStateChangeExecutor(
         try {
             usm.setAppInactive(pkgName, idle, uid)
             atsLogD(
-                "set packageName=$pkgName idle: $idle"
+                "[$pkgName] make ${if (idle) "inactive" else "active"}"
             )
         } catch (e: RemoteException) {
             atsLogE("call app idle error", e = e)
@@ -289,13 +344,13 @@ class AppStateChangeExecutor(
      * @param packageName 包名
      */
     private fun onResume(packageName: String) {
+        atsLogD("[$packageName] onResume handle start")
         val targetProcessRecords: List<ProcessRecord> =
             getTargetProcessRecords(packageName)
         // 如果目标进程为空就不处理
         if (targetProcessRecords.isEmpty()) {
             return
         }
-        atsLogD("$packageName resumed process")
         // 遍历目标进程列表
         for (targetProcessRecord in targetProcessRecords) {
 //            atsLogD("process: $targetProcessRecord")
@@ -344,8 +399,8 @@ class AppStateChangeExecutor(
             // 解冻进程
             freezeUtils.unFreezer(targetProcessRecord)
         }
-        setAppIdle(packageName, false)
-
+//        setAppIdle(packageName, false)
+        atsLogD("[$packageName] onResume handle end")
     }
 
     private fun stopServiceLocked(processRecord: ProcessRecord) {
@@ -355,7 +410,7 @@ class AppStateChangeExecutor(
     private fun stopServiceLocked(processRecord: ProcessRecord, enqueueOomAdj: Boolean) {
         for (processServiceRecord in processRecord.processServiceRecords) {
             for (mService in processServiceRecord.mServices) {
-                atsLogD("try to stop service=${mService.serviceInfo.name}")
+                atsLogD("try to stop service[${mService.serviceInfo.name}]")
                 if (useOriginMethod) {
                     activityManagerService.activeServices.activeServices.javaClass
                         .method {
@@ -380,18 +435,18 @@ class AppStateChangeExecutor(
      * @param packageName 包名
      */
     private fun onPause(packageName: String, mainPid: Int) {
-        atsLogD("packageName=$packageName paused process start")
+        atsLogD("[$packageName] onPause handle start")
 
         //double check 应用是否前台
-        val isAppForeground = isForeground(packageName, mainPid)
+        val isAppForeground =
+            isForeground(packageName, mainPid) || hasOverlayUiPackages.contains(packageName) ||
+                    hasAudioFocusPackages.contains(packageName)
         // 如果是前台应用就不处理
         if (isAppForeground) {
-            atsLogD("$packageName is in foreground ignored")
+            atsLogD("[$packageName] is foreground ignored")
             return
         }
 
-        // 后台应用添加包名
-        backgroundApps.add(packageName)
         val targetProcessRecords: List<ProcessRecord> =
             getTargetProcessRecords(packageName)
         // 如果目标进程为空就不处理
@@ -466,17 +521,19 @@ class AppStateChangeExecutor(
             // 如果杀死进程列表包含进程名
             packageParam.apply {
                 if (queryKillProcessesList().contains(processName)) {
-                    atsLogD("$processName kill")
+                    atsLogD("[$processName] kill")
                     // 杀死进程
                     freezeUtils.kill(pid)
                 } else {
-                    atsLogD("$processName freezer")
+                    atsLogD("[$processName] freezer")
                     freezeUtils.freezer(targetProcessRecord)
                 }
             }
 
         }
         setAppIdle(packageName, true)
+
+        atsLogD("[$packageName] onPause handle end")
     }
 
     /**
@@ -527,7 +584,7 @@ class AppStateChangeExecutor(
                             .contains(packageName) && !queryKillProcessesList()
                             .contains(processName)
                     ) {
-                        atsLogD("white app process $processName")
+                        atsLogD("[$processName] white app process")
                         skip = true
                         return@apply
                     }
@@ -561,7 +618,7 @@ class AppStateChangeExecutor(
                 PackageManager.GET_UNINSTALLED_PACKAGES
             )
         } catch (e: PackageManager.NameNotFoundException) {
-            atsLogD("$packageName not found")
+            atsLogD("[$packageName] not found")
         }
         return null
     }
@@ -578,6 +635,8 @@ class AppStateChangeExecutor(
             type = "com.android.server.appop.AppOpsService"
             superClass(true)
         }.get(ams).cast<Any>()!!
+
+        acService = context.getSystemService(Context.ACTIVITY_SERVICE)
 
         atsLogD("appOpsService class: ${appOpsService.javaClass}")
 //        mUsageStatsService = context.getSystemService(Context.USAGE_STATS_SERVICE)

@@ -1,5 +1,6 @@
 package com.v2dawn.autotombstone.hook.tombstone.hook;
 
+import android.os.PowerManager
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.loggerD
 import com.highcapable.yukihookapi.hook.param.HookParam
@@ -63,7 +64,7 @@ class BroadcastDeliverHook : YukiBaseHooker() {
         // 暂存
         val app: Any = processRecord.processRecord
 
-        atsLogD("${processRecord.processName}  clear broadcast")
+        atsLogD("[${processRecord.processName}] clear broadcast")
         // 清楚广播
         receiverList.clear()
 

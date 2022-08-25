@@ -1,8 +1,12 @@
 package com.v2dawn.autotombstone.hook.tombstone.hook
 
 import android.content.ComponentName
+import android.content.Context
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.os.Build
 import android.service.notification.StatusBarNotification
+import android.util.Log
 import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.field
@@ -27,6 +31,9 @@ class AppStateChangeHook() : YukiBaseHooker() {
     private val ACTIVITY_PAUSED: Int =
         Event.EventClass.clazz.field { name = Event.ACTIVITY_PAUSED }.get(null).cast<Int>()!!
 
+//    val ACTIVITY_STOPPED = 23
+//    val ACTIVITY_DESTROYED = 24
+
     companion object {
         var serviceRegistered = false
     }
@@ -36,10 +43,13 @@ class AppStateChangeHook() : YukiBaseHooker() {
         appStateChangeExecutor: AppStateChangeExecutor
     ) {
 
+
         // 获取切换事件
         val event = param.args(2).int()
         // AMS有两个方法，但参数不同
-        val packageName = param.args(0).cast<ComponentName>()!!.packageName
+        val componentName = param.args(0).cast<ComponentName>()!!
+        val packageName = componentName.packageName
+        val rootComponentName = param.args(4).cast<ComponentName>()
         val userId = param.args(1).int()
         if (userId != ActivityManagerService.MAIN_USER) {
             return
@@ -47,7 +57,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
         if ("android" == packageName) {
             return
         }
-
+        atsLogD("[${packageName}] componentName:${componentName}, root:${rootComponentName} event:$event")
         val eventText: String
         when (event) {
             ACTIVITY_PAUSED -> {
@@ -66,7 +76,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
                 return
             }
         }
-        atsLogD("packageName=$packageName $eventText")
+        atsLogD("[$packageName] $eventText")
 
         appStateChangeExecutor.execute(packageName, event == ACTIVITY_RESUMED)
 
@@ -127,7 +137,30 @@ class AppStateChangeHook() : YukiBaseHooker() {
                 }
             }
         }
-        atsLogI("hook commom app switch")
+        atsLogI("hook common app switch")
+
+        ClassEnum.NotificationUsageStatsClass.hook {
+            injectMember {
+                method {
+                    name = "registerDismissedByUser"
+                    param("com.android.server.notification.NotificationRecord")
+                }
+                afterHook {
+
+                    val sbn = "com.android.server.notification.NotificationRecord".clazz
+                        .field { name = "sbn" }.get(args(0).any())
+                        .cast<StatusBarNotification>()!!
+
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        atsLogD("[${sbn.packageName}|${sbn.opPkg}] notification or overlay closed bu")
+                    } else {
+                        atsLogD("[${sbn.packageName}] notification or overlay closed bu")
+                    }
+                    appStateChangeExecutor.execute(sbn.packageName)
+                }
+            }
+        }
 
         ClassEnum.NotificationUsageStatsClass.hook {
             injectMember {
@@ -136,18 +169,23 @@ class AppStateChangeHook() : YukiBaseHooker() {
                     param("com.android.server.notification.NotificationRecord")
                 }
                 afterHook {
-                    atsLogD("app no or overlay closed")
-
 
                     val sbn = "com.android.server.notification.NotificationRecord".clazz
                         .field { name = "sbn" }.get(args(0).any())
                         .cast<StatusBarNotification>()!!
+
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        atsLogD("[${sbn.packageName}|${sbn.opPkg}] notification or overlay closed ba")
+                    } else {
+                        atsLogD("[${sbn.packageName}] notification or overlay closed ba")
+                    }
                     appStateChangeExecutor.execute(sbn.packageName)
                 }
             }
         }
         // for overlay ui & notification
-        atsLogI("hook app notification remove & overlay closed")
+        atsLogI("hook app notification removed and overlay removed")
         "${ClassEnum.ActivityManagerServiceClass}\$LocalService"
             .hook {
                 injectMember {
@@ -158,17 +196,49 @@ class AppStateChangeHook() : YukiBaseHooker() {
                     afterHook {
                         val hasOverlayUi = args(1).boolean()
                         val pid = args(0).int()
-                        atsLogD("set pid :$pid hasOverlayUi:$hasOverlayUi")
-                        appStateChangeExecutor.execute(pid, hasOverlayUi)
+//                        atsLogD("set pid :$pid hasOverlayUi:$hasOverlayUi")
+                        appStateChangeExecutor.executeByOverlayUi(pid, hasOverlayUi)
                     }
                 }
             }
 
+        ClassEnum.MediaFocusControlClass.hook {
+            injectMember {
+                allMethods("requestAudioFocus")
+                afterHook {
+                    val pkg = args(5).string()
+                    atsLogD("[${pkg}] audio request result:${result}")
+
+                    val retSuccess = AudioManager.AUDIOFOCUS_REQUEST_GRANTED == result
+                    if (retSuccess) {
+                        appStateChangeExecutor.executeByAudioFocus(pkg, true)
+                    }
+                }
+            }
+        }
+        ClassEnum.MediaFocusControlClass.hook {
+            injectMember {
+                allMethods("abandonAudioFocus")
+                afterHook {
+                    val pkg = args(3).string()
+
+                    atsLogD("[${pkg}] audio abandon result:${result}")
+                    val retSuccess = AudioManager.AUDIOFOCUS_REQUEST_GRANTED == result
+                    if (retSuccess) {
+                        appStateChangeExecutor.executeByAudioFocus(pkg, false)
+                    }
+                }
+            }
+        }
+
+
+
+        atsLogI("hook audio manager")
 
     }
 
     private fun registerAtsConfigService(appStateChangeExecutor: AppStateChangeExecutor) {
-        atsLogI("register atsConfigService")
+        atsLogI("register atsConfigReloadService")
         if (serviceRegistered) return
 
 

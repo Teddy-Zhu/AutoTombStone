@@ -101,9 +101,7 @@ class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>(
             packageManager.getPackageInfo(appItemData.packageName, PackageManager.GET_SERVICES)
         if (packageInfo.services != null) {
             for (service in packageInfo.services) {
-                if (appItemData.packageName != service.processName) {
-                    services.add(service.processName)
-                }
+                services.add(service.processName)
             }
         }
 

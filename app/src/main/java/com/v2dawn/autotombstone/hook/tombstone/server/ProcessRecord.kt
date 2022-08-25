@@ -3,6 +3,7 @@ package com.v2dawn.autotombstone.hook.tombstone.server;
 import android.content.pm.ApplicationInfo
 import android.os.Build
 import com.highcapable.yukihookapi.hook.factory.field
+import com.highcapable.yukihookapi.hook.factory.method
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 
 class ProcessRecord(val processRecord: Any) {
@@ -11,14 +12,19 @@ class ProcessRecord(val processRecord: Any) {
     val processName: String?
     val userId: Int
     val applicationInfo: ApplicationInfo?
-    public val processServiceRecords: MutableList<ProcessServiceRecord> = ArrayList()
+    public val processServiceRecords: MutableList<ProcessServiceRecord>
 
+    val mWindowProcessController: WindowProcessController
 
     fun setCurAdj(curAdj: Int) {
         processRecord.javaClass
             .field {
                 name = FieldEnum.curAdjField
             }.get(processRecord).set(curAdj)
+    }
+
+    fun hasRunningActivity(packageName: String): Boolean {
+        return mWindowProcessController.hasRunningActivity(packageName)
     }
 
     override fun toString(): String {
@@ -50,9 +56,18 @@ class ProcessRecord(val processRecord: Any) {
             .get(processRecord).int()
         applicationInfo = processRecord.javaClass.field { name = FieldEnum.infoField }
             .get(processRecord).cast<ApplicationInfo>()
+
+        mWindowProcessController = WindowProcessController(
+            processRecord.javaClass.method {
+                name = "getWindowProcessController"
+                emptyParam()
+            }.get(processRecord).invoke<Any>()!!
+        )
+
         val ms = processRecord.javaClass.field { name = FieldEnum.mServicesField }
             .get(processRecord).cast<Any>()!!
-        processServiceRecords.clear()
+
+        processServiceRecords = ArrayList()
         if (ms is Collection<*>) {
             for (o in ms) {
                 processServiceRecords.add(ProcessServiceRecord(o!!))

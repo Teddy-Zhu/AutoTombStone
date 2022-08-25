@@ -1,6 +1,8 @@
 package com.v2dawn.autotombstone.hook.tombstone.support;
 
 object ClassEnum {
+    const val MediaFocusControlClass = "com.android.server.audio.MediaFocusControl"
+    const val AudioManagerClass = "android.media.AudioManager"
     const val ActivityThreadClass = "android.app.ActivityThread"
     const val ServiceRecordClass ="com.android.server.am.ServiceRecord"
     const val ServiceManagerClass = "android.os.ServiceManager"
