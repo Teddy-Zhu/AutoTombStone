@@ -38,10 +38,11 @@ class PowerManagerService(raw: Any) : ForkOrigin(raw) {
     private fun reloadWakeLock(packageName: String): ArrayList<WakeLock> {
         val wls = getRawData().javaClass.field {
             name = "mWakeLocks"
-        }.get(getRawData()).list<PowerManager.WakeLock>()
+        }.get(getRawData()).list<Any>()
 
+        val cpy = ArrayList<Any>(wls)
         val list = ArrayList<WakeLock>()
-        for (wl in wls) {
+        for (wl in cpy) {
             val wk = WakeLock(wl)
             if (packageName == wk.packageName) {
                 list.add(wk)

@@ -8,6 +8,7 @@ import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.FieldEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
 import java.util.*
+import kotlin.collections.ArrayList
 
 
 class ProcessList(private val processList: Any) {
@@ -18,7 +19,8 @@ class ProcessList(private val processList: Any) {
             val processRecordList = processList.javaClass.field {
                 name = FieldEnum.mLruProcessesField
             }.get(processList).list<Any>()
-            for (proc in processRecordList) {
+            val cpy = ArrayList<Any>(processRecordList)
+            for (proc in cpy) {
                 processRecords.add(ProcessRecord(proc))
             }
         } catch (ignored: Exception) {

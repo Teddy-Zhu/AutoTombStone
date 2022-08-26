@@ -1,6 +1,5 @@
 package com.android.server
 
-import android.content.Context
 import android.os.IAtsConfigService
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
@@ -31,7 +30,7 @@ class AtsConfigService(val appStateChangeExecutor: AppStateChangeExecutor) :
                     object : TimerTask() {
                         override fun run() {
                             timerMap.remove(uk)
-                            appStateChangeExecutor.reloadConfigQueue.put(uk)
+                            appStateChangeExecutor.reloadConfig(name, key)
                         }
                     }, 5000
                 )

@@ -41,13 +41,15 @@ class HookEntry : IYukiHookXposedInit {
             atsLogI("${Build.MANUFACTURER} device:$packageName")
 
 
-            loadHooker(CacheFreezerHook())
+//            loadHooker(CacheFreezerHook())
             loadHooker(UsageContextHook())
             loadHooker(AppStateChangeHook())
             loadHooker(BroadcastDeliverHook())
 //            loadHooker(OomAdjHook())
             loadHooker(ANRHook())
             loadHooker(TaskTrimHook())
+            loadHooker(PowerManagerServiceHook())
+//            loadHooker(ActivityHook())
 
         }
 //        loadApp(BuildConfig.APPLICATION_ID) {

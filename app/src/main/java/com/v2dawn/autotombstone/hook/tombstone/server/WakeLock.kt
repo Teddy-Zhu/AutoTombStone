@@ -6,16 +6,16 @@ import com.highcapable.yukihookapi.hook.factory.field
 
 class WakeLock(raw: Any) : ForkOrigin(raw) {
     val flags: Int = getRawData().javaClass.field {
-        name = "flags"
+        name = "mFlags"
     }.get(getRawData()).int()
-    val lock: IBinder = getRawData().javaClass.field {
-        name = "lock"
-    }.get(getRawData()).cast()!!
+    val lock: IBinder? = getRawData().javaClass.field {
+        name = "mLock"
+    }.get(getRawData()).cast()
     val packageName: String = getRawData().javaClass.field {
-        name = "packageName"
+        name = "mPackageName"
     }.get(getRawData()).string()
     val tag: String = getRawData().javaClass.field {
-        name = "tag"
+        name = "mTag"
     }.get(getRawData()).string()
 
 }

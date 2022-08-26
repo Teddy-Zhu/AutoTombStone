@@ -46,29 +46,7 @@ class AppStateChangeExecutor(
 ) : Runnable {
 
     private val thread: Thread = Thread(this)
-    public val reloadConfigQueue = ArrayBlockingQueue<String>(10)
-
-    private val reloadThread: Thread = Thread {
-        try {
-            atsLogI("task queue obj: ${reloadConfigQueue.hashCode()}")
-
-            while (true) {
-                val params = reloadConfigQueue.take()
-                val kv = params.split("#")
-                if (kv.size != 2) {
-                    atsLogW("reload kv exception :$params")
-                    continue
-                }
-                packageParam.apply {
-                    atsLogI("reload config:${kv[0]},key:${kv[1]}")
-                    prefs.name(kv[0]).clearCache(kv[1])
-//                    prefs.name(kv[0]).clearCache()
-                }
-            }
-        } catch (e: Exception) {
-            //ignored
-        }
-    }
+    
     val queue: BlockingQueue<String> = ArrayBlockingQueue(20)
     val timerMap = Collections.synchronizedMap(HashMap<String, Timer?>())
     private val freezeUtils: FreezeUtils
@@ -459,6 +437,7 @@ class AppStateChangeExecutor(
         if (targetProcessRecords.isEmpty()) {
             return
         }
+        setAppIdle(packageName, true)
 
         // 遍历目标进程
         for (targetProcessRecord in targetProcessRecords) {
@@ -634,6 +613,14 @@ class AppStateChangeExecutor(
         return null
     }
 
+    public fun reloadConfig(name: String, key: String) {
+        packageParam.apply {
+            atsLogI("reload config:$name,key:$key")
+            prefs.name(name).clearCache(key)
+//                    prefs.name(kv[0]).clearCache()
+        }
+    }
+
     init {
         freezeUtils = FreezeUtils(packageParam, freezerConfig)
 
@@ -695,8 +682,6 @@ class AppStateChangeExecutor(
             }
         }
         thread.isDaemon = true
-        reloadThread.isDaemon = true
-        reloadThread.start()
         thread.start()
     }
 }

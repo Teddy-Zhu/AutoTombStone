@@ -148,12 +148,12 @@ class FreezeUtils(
     }
 
     fun thawPid(pid: Int, uid: Int) {
-        freezeBinder(pid, false)
+//        freezeBinder(pid, false)
         setFreezeAction(pid, uid, false)
     }
 
     fun freezePid(pid: Int, uid: Int) {
-        freezeBinder(pid, true)
+//        freezeBinder(pid, true)
         setFreezeAction(pid, uid, true)
     }
 
