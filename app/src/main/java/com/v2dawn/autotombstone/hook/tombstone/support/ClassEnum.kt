@@ -1,6 +1,11 @@
 package com.v2dawn.autotombstone.hook.tombstone.support;
 
 object ClassEnum {
+    const val ActivityTaskSupervisorClass = "com.android.server.wm.ActivityTaskSupervisor"
+    const val ActivityStackSupervisorClass = "com.android.server.wm.ActivityStackSupervisor"
+    const val ActivityStackSupervisorHandlerClas =
+        "com.android.server.wm.ActivityStackSupervisor\$ActivityStackSupervisorHandler"
+
     const val ActivityTaskManagerServiceClass = "com.android.server.wm.ActivityTaskManagerService"
     const val ActivityManagerClass = "android.app.ActivityManager"
     const val RecentTasksClass = "com.android.server.wm.RecentTasks"

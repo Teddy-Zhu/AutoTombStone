@@ -1,11 +1,13 @@
 package com.android.server
 
+import android.content.Context
 import android.os.IAtsConfigService
+import android.os.PowerManager
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
 import java.util.*
 
-class AtsConfigService(val appStateChangeExecutor: AppStateChangeExecutor) :
+class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStateChangeExecutor) :
     IAtsConfigService.Stub() {
 
     val timerMap = Collections.synchronizedMap(HashMap<String, Timer?>())
@@ -38,6 +40,12 @@ class AtsConfigService(val appStateChangeExecutor: AppStateChangeExecutor) :
             timerMap[uk] = timer
         }
 
+    }
+
+    override fun restartSystem() {
+
+        val manager = context.getSystemService(Context.POWER_SERVICE) as PowerManager;
+        manager.reboot("ats service reboot")
     }
 
 

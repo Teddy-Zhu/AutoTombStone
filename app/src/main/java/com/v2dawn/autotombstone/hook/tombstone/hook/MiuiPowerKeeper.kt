@@ -7,7 +7,7 @@ import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
 import com.v2dawn.autotombstone.hook.tombstone.support.doNothing
 
-class PowerKeeper : YukiBaseHooker() {
+class MiuiPowerKeeper : YukiBaseHooker() {
 
     fun hook() {
         try {

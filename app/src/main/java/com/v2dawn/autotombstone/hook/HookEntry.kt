@@ -1,22 +1,12 @@
 package com.v2dawn.autotombstone.hook
 
-import android.content.Context
-import android.media.AudioFocusRequest
 import android.os.Build
-import android.util.Log
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
 import com.highcapable.yukihookapi.hook.factory.configs
 import com.highcapable.yukihookapi.hook.factory.encase
-import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.log.loggerI
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
-import com.v2dawn.autotombstone.BuildConfig
 import com.v2dawn.autotombstone.hook.tombstone.hook.*
-import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
-import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
-import java.util.concurrent.ArrayBlockingQueue
-import java.util.concurrent.BlockingQueue
 
 @InjectYukiHookWithXposed(isUsingResourcesHook = false)
 class HookEntry : IYukiHookXposedInit {
@@ -38,7 +28,7 @@ class HookEntry : IYukiHookXposedInit {
 //            loadHooker(ActivityThreadHook())
 //        }
         loadSystem {
-            atsLogI("${Build.MANUFACTURER} device:$packageName")
+            atsLogI("${Build.MANUFACTURER} device")
 
 
 //            loadHooker(CacheFreezerHook())
@@ -49,15 +39,24 @@ class HookEntry : IYukiHookXposedInit {
             loadHooker(ANRHook())
             loadHooker(TaskTrimHook())
             loadHooker(PowerManagerServiceHook())
-//            loadHooker(ActivityHook())
+            loadHooker(ActivityTaskHook())
+            loadHooker(ActivityIdleHook())
+//            loadHooker(TestActivityHook())
 
         }
+
+//        loadApp("com.android.systemui"){
+//            atsLogI("system ui")
+//
+//            loadHooker(TestActivityHook())
+//
+//        }
 //        loadApp(BuildConfig.APPLICATION_ID) {
 //            loadHooker(ConfigReloadHook())
 //            atsLogI("load config reload hook")
 //        }
         loadApp("com.miui.powerkeeper") {
-            loadHooker(PowerKeeper())
+            loadHooker(MiuiPowerKeeper())
             atsLogI("load miui power")
         }
     }

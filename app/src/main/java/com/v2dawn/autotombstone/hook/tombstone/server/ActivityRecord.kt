@@ -9,6 +9,7 @@ class ActivityRecord(val activityRecord: Any) {
 
     val nowVisible: Boolean
     val mVisible: Boolean
+    val intent: android.content.Intent?
 
     init {
 
@@ -23,6 +24,12 @@ class ActivityRecord(val activityRecord: Any) {
         mVisible = activityRecord.javaClass.field {
             name = "mVisible"
         }.get(activityRecord).boolean()
+
+        intent = activityRecord.javaClass.field {
+            name = "intent"
+            superClass()
+        }.get(activityRecord).cast<android.content.Intent>()
+
 
     }
 

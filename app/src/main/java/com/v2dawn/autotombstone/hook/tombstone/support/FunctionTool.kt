@@ -42,6 +42,11 @@ fun ApplicationInfo.isSystem(): Boolean {
     return FunctionTool.isSystem(this)
 }
 
+
+fun ApplicationInfo.isImportantSystem(): Boolean {
+    return FunctionTool.isImportantSystemApp(this)
+}
+
 object FunctionTool {
 
     val FLAG_SYSTEM: Int = android.content.pm.ApplicationInfo::class.java.field {
@@ -54,6 +59,10 @@ object FunctionTool {
 
     fun isSystem(applicationInfo: ApplicationInfo): Boolean {
         return applicationInfo.flags and (FLAG_SYSTEM or FLAG_UPDATED_SYSTEM_APP) != 0
+    }
+
+    fun isImportantSystemApp(applicationInfo: ApplicationInfo):Boolean{
+        return applicationInfo.uid < 10000
     }
 
     fun PackageParam.queryWhiteAppList(): Set<String> {

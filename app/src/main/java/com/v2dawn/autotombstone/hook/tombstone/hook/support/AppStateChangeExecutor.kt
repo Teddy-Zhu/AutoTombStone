@@ -521,7 +521,7 @@ class AppStateChangeExecutor(
             }
         }
 
-        setAppIdle(packageName, true)
+//        setAppIdle(packageName, true)
 
         atsLogD("[$packageName] onPause handle end")
     }

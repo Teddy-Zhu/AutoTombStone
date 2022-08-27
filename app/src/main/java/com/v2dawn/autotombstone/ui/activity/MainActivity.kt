@@ -3,10 +3,12 @@
 package com.v2dawn.autotombstone.ui.activity
 
 import android.content.ComponentName
+import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.IAtsConfigService
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.view.isVisible
 import com.highcapable.yukihookapi.YukiHookAPI
@@ -55,6 +57,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         // Your code here.
         binding.appConfigButton.setOnClickListener {
             navigate<AppConfigureActivity>()
+        }
+
+        binding.restartBtn.setOnClickListener {
+            restartSystem()
         }
         Log.i(
             TAG,
@@ -115,25 +121,34 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     }
 
+    fun getAtsService(): IAtsConfigService {
+        if (atsConfigService == null) {
+            val binder: IBinder = classOf(
+                ClassEnum.ServiceManagerClass,
+                Thread.currentThread().contextClassLoader
+            )
+                .method {
+                    name = "getService"
+                    param(StringType)
+                }.get().invoke<IBinder>(AtsConfigService.serviceName)!!
+
+            atsConfigService =
+                IAtsConfigService.Stub.asInterface(binder)
+            //mService =(ICustomService)context.getSystemService("wx_custom.service");
+        }
+
+        return atsConfigService!!
+    }
+
+    fun restartSystem() {
+        getAtsService().restartSystem()
+    }
+
     private fun prefChange(configName: String, key: String) {
         Log.d(TAG, "pref change $configName , $key")
-        try {
-            if (atsConfigService == null) {
-                val binder: IBinder = classOf(ClassEnum.ServiceManagerClass,Thread.currentThread().contextClassLoader)
-                    .method {
-                        name = "getService"
-                        param(StringType)
-                    }.get().invoke<IBinder>(AtsConfigService.serviceName)!!
 
-                atsConfigService =
-                    IAtsConfigService.Stub.asInterface(binder)
-                //mService =(ICustomService)context.getSystemService("wx_custom.service");
-            }
-            atsConfigService?.configChange(configName, key)
+        getAtsService().configChange(configName, key)
 
-        } catch (e: Exception) {
-            Log.e(TAG, "call confservice error", e)
-        }
     }
 
     override fun onDestroy() {

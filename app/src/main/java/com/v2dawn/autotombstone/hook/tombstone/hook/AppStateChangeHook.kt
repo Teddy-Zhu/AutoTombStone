@@ -97,7 +97,15 @@ class AppStateChangeHook() : YukiBaseHooker() {
                     val appStateChangeExecutor =
                         AppStateChangeExecutor(this@AppStateChangeHook, instance)
                     AppStateChangeExecutor.instance = appStateChangeExecutor
-                    registerAtsConfigService(appStateChangeExecutor)
+                    val context = instance.javaClass.field {
+                        name = "mContext"
+                        superClass()
+                    }.get(instance).cast<Context>()
+                    if (context != null) {
+                        registerAtsConfigService(context, appStateChangeExecutor)
+                    } else {
+                        atsLogI("not found context reg ats failed")
+                    }
 //                    registerAtsConfigService(appStateChangeExecutor);
                     hookOther(appStateChangeExecutor)
                     hookProcessKill(appStateChangeExecutor)
@@ -262,12 +270,15 @@ class AppStateChangeHook() : YukiBaseHooker() {
 
     }
 
-    private fun registerAtsConfigService(appStateChangeExecutor: AppStateChangeExecutor) {
+    private fun registerAtsConfigService(
+        context: Context,
+        appStateChangeExecutor: AppStateChangeExecutor
+    ) {
         atsLogI("register atsConfigReloadService")
         if (serviceRegistered) return
 
 
-        val atsConfigService = AtsConfigService(appStateChangeExecutor)
+        val atsConfigService = AtsConfigService(context, appStateChangeExecutor)
 
         ClassEnum.ServiceManagerClass.clazz
             .method {

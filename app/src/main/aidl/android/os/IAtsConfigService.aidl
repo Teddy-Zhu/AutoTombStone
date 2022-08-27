@@ -5,4 +5,6 @@ import java.lang.String;
 
 interface IAtsConfigService {
     void configChange(String name,String key);
+
+    void restartSystem();
 }

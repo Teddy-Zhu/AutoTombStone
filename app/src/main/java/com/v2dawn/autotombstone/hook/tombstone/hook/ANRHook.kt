@@ -11,25 +11,36 @@ import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
 import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
 import com.v2dawn.autotombstone.hook.tombstone.support.*
+import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAppList
 
 class ANRHook : YukiBaseHooker() {
 
     private fun needHook(param: HookParam): Boolean {
         // ANR进程为空就不处理
-        val arg0 = param.args().first().cast<Any>() ?: return false
+        val arg0 = param.args(0).cast<Any>() ?: return false
         // ANR进程
         val processRecord = ProcessRecord(arg0)
-        // 是否系统进程
-        val isSystem: Boolean = processRecord.applicationInfo?.isSystem() ?: false
-        // 进程对应包名
-        val packageName: String = processRecord.applicationInfo?.packageName!!
-        val isNotBlackSystem: Boolean = queryBlackSysAppsList().contains(packageName)
-
-        // 系统应用并且不是系统黑名单
-        if (isSystem && isNotBlackSystem || processRecord.userId != ActivityManagerService.MAIN_USER) {
+        if (processRecord.applicationInfo == null) {
             return false
         }
-        atsLogD( "Keep ${(processRecord.processName ?: packageName)}")
+        // 是否系统进程
+        val isSystem: Boolean = processRecord.applicationInfo.isSystem()
+        // 进程对应包名
+        val packageName: String = processRecord.applicationInfo.packageName
+        val isNotBlackSystem: Boolean = queryBlackSysAppsList().contains(packageName)
+        val isWhiteApp: Boolean = queryWhiteAppList().contains(packageName)
+        val isImportSystemApp = processRecord.applicationInfo.isImportantSystem()
+        if (isImportSystemApp) {
+            return false
+        }
+        // 系统应用并且不是系统黑名单
+        if (isSystem && isNotBlackSystem) {
+            return false
+        }
+        if (isWhiteApp) {
+            return false
+        }
+        atsLogD("Keep ${(processRecord.processName ?: packageName)}")
         // 不处理
         return true
     }
@@ -58,7 +69,7 @@ class ANRHook : YukiBaseHooker() {
                 }
             }
 
-            atsLogI( "Auto keep process")
+            atsLogI("Auto keep process")
         } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
             ClassEnum.ProcessRecordClass.hook {
                 injectMember {
@@ -74,8 +85,8 @@ class ANRHook : YukiBaseHooker() {
                     }
                 }
             }
-            atsLogI( "Android Q")
-            atsLogI( "Force keep process")
+            atsLogI("Android Q")
+            atsLogI("Force keep process")
         } else {
             ClassEnum.AppErrorsClass.hook {
                 injectMember {
@@ -92,8 +103,8 @@ class ANRHook : YukiBaseHooker() {
                     }
                 }
             }
-            atsLogI( "Android N-P")
-            atsLogI( "Force keep process")
+            atsLogI("Android N-P")
+            atsLogI("Force keep process")
         }
 
     }
