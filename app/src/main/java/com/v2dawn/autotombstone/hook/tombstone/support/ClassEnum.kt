@@ -6,6 +6,8 @@ object ClassEnum {
     const val ActivityStackSupervisorHandlerClas =
         "com.android.server.wm.ActivityStackSupervisor\$ActivityStackSupervisorHandler"
 
+    const val TileServiceClass = "android.service.quicksettings.TileService"
+
     const val ActivityTaskManagerServiceClass = "com.android.server.wm.ActivityTaskManagerService"
     const val ActivityManagerClass = "android.app.ActivityManager"
     const val RecentTasksClass = "com.android.server.wm.RecentTasks"

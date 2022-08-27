@@ -5,6 +5,7 @@ import android.content.Context
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
+import android.os.Message
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.android.server.AtsConfigService
@@ -15,6 +16,7 @@ import com.highcapable.yukihookapi.hook.param.HookParam
 import com.highcapable.yukihookapi.hook.type.android.ComponentNameClass
 import com.highcapable.yukihookapi.hook.type.android.IBinderClass
 import com.highcapable.yukihookapi.hook.type.android.IntentClass
+import com.highcapable.yukihookapi.hook.type.android.MessageClass
 import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
@@ -22,10 +24,7 @@ import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.Event
 import com.v2dawn.autotombstone.hook.tombstone.server.PowerManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
-import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
-import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
-import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
-import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
+import com.v2dawn.autotombstone.hook.tombstone.support.*
 
 class AppStateChangeHook() : YukiBaseHooker() {
     private val ACTIVITY_RESUMED: Int =
@@ -109,9 +108,37 @@ class AppStateChangeHook() : YukiBaseHooker() {
 //                    registerAtsConfigService(appStateChangeExecutor);
                     hookOther(appStateChangeExecutor)
                     hookProcessKill(appStateChangeExecutor)
+                    hookTileClick(appStateChangeExecutor)
                 }
             }
         }
+    }
+
+    private fun hookTileClick(appStateChangeExecutor: AppStateChangeExecutor) {
+
+        val MSG_TILE_CLICKED = "${ClassEnum.TileServiceClass}\$H".clazz.field {
+            name = "MSG_TILE_CLICKED"
+        }.get().int()!!
+        "${ClassEnum.TileServiceClass}\$H".hook {
+            injectMember {
+                method {
+                    name = "handleMessage"
+                    param(MessageClass)
+                }
+                beforeHook {
+                    val msg = args(0).cast<Message>() ?: return@beforeHook
+                    val context = instance as Context
+
+                    if (msg.what == MSG_TILE_CLICKED) {
+                        atsLogD("[${context.packageName}] tile click")
+                        appStateChangeExecutor.execute(context.packageName, true)
+                    }
+                }
+            }.onAllFailure {
+                atsLogE("handle tile msg error", e = it)
+            }
+        }
+        atsLogI("hook tile click")
     }
 
     private fun hookOther(appStateChangeExecutor: AppStateChangeExecutor) {

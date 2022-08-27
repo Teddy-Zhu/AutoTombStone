@@ -22,6 +22,7 @@ import com.v2dawn.autotombstone.databinding.ActivityMainBinding
 import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.hook.factory.classOf
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
 import com.v2dawn.autotombstone.utils.factory.navigate
 

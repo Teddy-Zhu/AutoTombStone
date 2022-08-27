@@ -22,16 +22,21 @@ class BroadcastDeliverHook : YukiBaseHooker() {
 
         val receiverList = broadcastFilter.receiverList
 
-        if (broadcastFilter.receiverList == null || broadcastFilter.receiverList!!.isNull()) {
+        if (broadcastFilter.receiverList == null) {
+            atsLogD("occur broadcast receiverList null")
             return null
         }
+
         // 如果广播为空就不处理
         val processRecord = receiverList?.processRecord
         // 如果进程或者应用信息为空就不处理
         if (processRecord?.applicationInfo == null) {
+            atsLogD("occur broadcast app info null")
+
             return null
         }
         if (processRecord.userId != ActivityManagerService.MAIN_USER) {
+            atsLogD("occur broadcast app main user")
             return null
         }
         val applicationInfo = processRecord.applicationInfo
@@ -42,9 +47,12 @@ class BroadcastDeliverHook : YukiBaseHooker() {
         if (!processName.startsWith(packageName)) {
             return null
         }
+        if (processRecord.userId == ActivityManagerService.MAIN_USER) {
+            return null
+        }
         // 如果是系统应用并且不是系统黑名单就不处理
-        if (applicationInfo.uid < 10000 || applicationInfo.isSystem() && !queryBlackSysAppsList()
-                .contains(packageName)
+        if (applicationInfo.isImportantSystem() || (applicationInfo.isSystem() && !queryBlackSysAppsList()
+                .contains(packageName))
         ) {
             return null
         }
@@ -61,7 +69,7 @@ class BroadcastDeliverHook : YukiBaseHooker() {
         // 暂存
         val app: Any = processRecord.processRecord
 
-        atsLogD("[${processRecord.processName}] clear broadcast")
+        atsLogD("[${processRecord.processName}] clear broadcast app:${app.hashCode()}")
         // 清楚广播
         receiverList.clear()
 
@@ -79,6 +87,7 @@ class BroadcastDeliverHook : YukiBaseHooker() {
 
         val broadcastFilter = BroadcastFilter(arg1)
         if (broadcastFilter.receiverList != null) {
+            atsLogD("${broadcastFilter.receiverList!!.processRecord?.processName} restore app:${app.hashCode()}")
             broadcastFilter.receiverList!!.restore(app)
         } else {
             return

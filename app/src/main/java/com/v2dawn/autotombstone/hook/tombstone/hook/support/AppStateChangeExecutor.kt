@@ -8,16 +8,12 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.media.AudioManager
 import android.os.Binder
 import android.os.IBinder
 import android.os.RemoteException
 import android.os.UserHandle
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.log.loggerD
-import com.highcapable.yukihookapi.hook.log.loggerE
-import com.highcapable.yukihookapi.hook.log.loggerI
 import com.highcapable.yukihookapi.hook.param.PackageParam
 import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.highcapable.yukihookapi.hook.type.java.StringType
@@ -25,19 +21,20 @@ import com.v2dawn.autotombstone.hook.tombstone.hook.system.CpuGroup
 import com.v2dawn.autotombstone.hook.tombstone.hook.system.Stat
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.PowerManagerService
+import com.v2dawn.autotombstone.hook.tombstone.server.ProcessList
+import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
+import com.v2dawn.autotombstone.hook.tombstone.support.*
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryKillProcessesList
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAppList
 import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteProcessesList
-import com.v2dawn.autotombstone.hook.tombstone.server.ProcessList
-import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
-import com.v2dawn.autotombstone.hook.tombstone.support.*
 import java.io.File
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
-import kotlin.collections.ArrayList
+import java.util.concurrent.Executors
+
 
 @SuppressLint("ServiceCast")
 class AppStateChangeExecutor(
@@ -45,8 +42,6 @@ class AppStateChangeExecutor(
     ams: Any,
 ) : Runnable {
 
-    private val thread: Thread = Thread(this)
-    
     val queue: BlockingQueue<String> = ArrayBlockingQueue(20)
     val timerMap = Collections.synchronizedMap(HashMap<String, Timer?>())
     private val freezeUtils: FreezeUtils
@@ -66,6 +61,8 @@ class AppStateChangeExecutor(
     private var useOriginMethod = true
     private val acService: Any
 
+    private val eventExecutor = Executors.newSingleThreadExecutor()
+
     companion object {
 
         var instance: AppStateChangeExecutor? = null
@@ -78,7 +75,6 @@ class AppStateChangeExecutor(
         private val SYS_SUPPORTS_SCHEDGROUPS = File("/dev/cpuctl/tasks").exists()
         private var OP_WAKE_LOCK = 40
         private var STANDBY_BUCKET_NEVER = 50
-
 
         fun getBackgroundIndex(packageName: String): Int {
             var total: Int = backgroundApps.size
@@ -110,7 +106,7 @@ class AppStateChangeExecutor(
         return null
     }
 
-    public fun executeByAudioFocus(packageName: String, hasFocus: Boolean): Boolean {
+    fun executeByAudioFocus(packageName: String, hasFocus: Boolean): Boolean {
 
         atsLogD("[$packageName] ${if (hasFocus) "request" else "lost"} audio focus")
         if (hasFocus) {
@@ -123,7 +119,7 @@ class AppStateChangeExecutor(
     }
 
 
-    public fun executeByOverlayUi(pid: Int, hasOverlayUi: Boolean): Boolean {
+    fun executeByOverlayUi(pid: Int, hasOverlayUi: Boolean): Boolean {
 
         val pkgName = findPackageName(pid);
         if (pkgName == null) {
@@ -141,7 +137,7 @@ class AppStateChangeExecutor(
     }
 
     @JvmOverloads
-    public fun execute(packageName: String, release: Boolean = false): Boolean {
+    fun execute(packageName: String, release: Boolean = false): Boolean {
 
         synchronized(packageName.intern()) {
             var timer = timerMap.getOrDefault(packageName, null)
@@ -149,11 +145,7 @@ class AppStateChangeExecutor(
             timer?.cancel()
             if (release) {
                 timerMap.remove(packageName)
-                try {
-                    check(packageName, true)
-                } catch (e: Exception) {
-                    atsLogE("call check failed", e = e)
-                }
+                queue.add(packageName)
                 return true
             }
             timer = Timer()
@@ -681,7 +673,6 @@ class AppStateChangeExecutor(
                 useOriginMethod = false
             }
         }
-        thread.isDaemon = true
-        thread.start()
+        eventExecutor.submit(this)
     }
 }

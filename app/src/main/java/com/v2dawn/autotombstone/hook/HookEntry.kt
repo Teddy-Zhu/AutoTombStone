@@ -4,8 +4,12 @@ import android.os.Build
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
 import com.highcapable.yukihookapi.hook.factory.configs
 import com.highcapable.yukihookapi.hook.factory.encase
+import com.highcapable.yukihookapi.hook.xposed.prefs.YukiHookModulePrefs
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
+import com.v2dawn.autotombstone.BuildConfig
+import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.hook.tombstone.hook.*
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
 
 @InjectYukiHookWithXposed(isUsingResourcesHook = false)
@@ -31,7 +35,7 @@ class HookEntry : IYukiHookXposedInit {
             atsLogI("${Build.MANUFACTURER} device")
 
 
-//            loadHooker(CacheFreezerHook())
+            loadHooker(CacheFreezerHook())
             loadHooker(UsageContextHook())
             loadHooker(AppStateChangeHook())
             loadHooker(BroadcastDeliverHook())
@@ -55,9 +59,5 @@ class HookEntry : IYukiHookXposedInit {
 //            loadHooker(ConfigReloadHook())
 //            atsLogI("load config reload hook")
 //        }
-        loadApp("com.miui.powerkeeper") {
-            loadHooker(MiuiPowerKeeper())
-            atsLogI("load miui power")
-        }
     }
 }
