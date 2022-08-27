@@ -37,50 +37,6 @@ class ANRHook : YukiBaseHooker() {
         return false
     }
 
-    private fun needHookApplication(
-        userId: Int?,
-        processName: String?,
-        application: ApplicationInfo?
-    ): Boolean {
-        if (application == null) {
-            atsLogI("allow anr reason:empty app info")
-            return false
-        }
-        // 是否系统进程
-        val isSystem: Boolean = application.isSystem()
-        // 进程对应包名
-        val packageName: String = application.packageName
-        val isNotBlackSystem: Boolean = queryBlackSysAppsList().contains(packageName)
-        val isWhiteApp: Boolean = queryWhiteAppList().contains(packageName)
-        val isImportSystemApp = application.isImportantSystem()
-        if (isImportSystemApp) {
-            atsLogI("[${packageName}] allow anr reason:important sys app")
-
-            return false
-        }
-        if (userId != null) {
-            if (userId == ActivityManagerService.MAIN_USER) {
-                atsLogI("[${packageName}] allow anr reason:main user")
-                return false
-            }
-        }
-
-        // 系统应用并且不是系统黑名单
-        if (isSystem && isNotBlackSystem) {
-            atsLogI("[${packageName}] allow anr reason:system app")
-
-            return false
-        }
-        if (isWhiteApp && !AppStateChangeExecutor.backgroundApps.contains(packageName)) {
-            atsLogI("[${packageName}] allow anr reason:whiteApp")
-            return false
-        }
-
-        atsLogD("${(processName ?: packageName)} keep no anr")
-        // 不处理
-        return true
-    }
-
     private fun resolveAnr(
         processRecordRaw: Any?,
         applicationInfo: ApplicationInfo?,

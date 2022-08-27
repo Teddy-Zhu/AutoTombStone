@@ -22,7 +22,9 @@ import com.v2dawn.autotombstone.databinding.ActivityMainBinding
 import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.hook.factory.classOf
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogE
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogW
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
 import com.v2dawn.autotombstone.utils.factory.navigate
 
@@ -124,18 +126,22 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     fun getAtsService(): IAtsConfigService {
         if (atsConfigService == null) {
-            val binder: IBinder = classOf(
-                ClassEnum.ServiceManagerClass,
-                Thread.currentThread().contextClassLoader
-            )
-                .method {
-                    name = "getService"
-                    param(StringType)
-                }.get().invoke<IBinder>(AtsConfigService.serviceName)!!
+            try {
+                val binder: IBinder = classOf(
+                    ClassEnum.ServiceManagerClass,
+                    Thread.currentThread().contextClassLoader
+                )
+                    .method {
+                        name = "getService"
+                        param(StringType)
+                    }.get().invoke<IBinder>(AtsConfigService.serviceName)!!
 
-            atsConfigService =
-                IAtsConfigService.Stub.asInterface(binder)
-            //mService =(ICustomService)context.getSystemService("wx_custom.service");
+                atsConfigService =
+                    IAtsConfigService.Stub.asInterface(binder)
+            } catch (e: Exception) {
+                atsLogE("ats config service get error", e = e)
+            }
+
         }
 
         return atsConfigService!!
@@ -148,6 +154,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     private fun prefChange(configName: String, key: String) {
         Log.d(TAG, "pref change $configName , $key")
 
+        if (!YukiHookAPI.Status.isModuleActive) {
+            return
+        }
         getAtsService().configChange(configName, key)
 
     }

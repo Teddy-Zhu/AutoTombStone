@@ -338,6 +338,10 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         }
 
     override fun onBackPressed() {
+        if (filterText.isNotBlank()) {
+            onStartRefresh(false)
+            return
+        }
         if (MainActivity.isActivityLive.not())
             showDialog {
                 title = "提示"

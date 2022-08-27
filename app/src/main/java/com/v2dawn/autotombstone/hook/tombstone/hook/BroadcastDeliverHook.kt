@@ -49,65 +49,6 @@ class BroadcastDeliverHook : YukiBaseHooker() {
 
         return app
     }
-    fun myReplaceMethod(param: HookParam): Any? {
-        val arg1 = param.args(1).any() ?: return null
-
-        val broadcastFilter = BroadcastFilter(arg1)
-
-        val receiverList = broadcastFilter.receiverList
-
-        if (broadcastFilter.receiverList == null) {
-            atsLogD("occur broadcast receiverList null")
-            return null
-        }
-
-        // 如果广播为空就不处理
-        val processRecord = receiverList?.processRecord
-        // 如果进程或者应用信息为空就不处理
-        if (processRecord?.applicationInfo == null) {
-            atsLogD("occur broadcast app info null")
-
-            return null
-        }
-
-        val applicationInfo = processRecord.applicationInfo
-        val packageName: String = processRecord.applicationInfo.packageName ?: return null
-        // 如果包名为空就不处理(猜测系统进程可能为空)
-        val processName: String = processRecord.processName ?: return null
-        // 如果进程名称不是包名开头就跳过
-        if (!processName.startsWith(packageName)) {
-            return null
-        }
-        if (processRecord.userId == ActivityManagerService.MAIN_USER) {
-            atsLogD("[$packageName|$processName] occur broadcast app main user")
-
-            return null
-        }
-        // 如果是系统应用并且不是系统黑名单就不处理
-        if (applicationInfo.isImportantSystem() || (applicationInfo.isSystem() && !queryBlackSysAppsList()
-                .contains(packageName))
-        ) {
-            return null
-        }
-        // 如果是前台应用就不处理
-        if (!AppStateChangeExecutor.backgroundApps.contains(packageName)) {
-            return null
-        }
-        // 如果白名单应用或者进程就不处理
-        if (queryWhiteAppList().contains(packageName) || queryWhiteProcessesList()
-                .contains(processName)
-        ) {
-            return null
-        }
-        // 暂存
-        val app: Any = processRecord.processRecord
-
-        atsLogD("[${processRecord.processName}] clear broadcast")
-        // 清楚广播
-        receiverList.clear()
-
-        return app
-    }
 
     private fun afterHookedMethod(param: HookParam, app: Any?) {
 
