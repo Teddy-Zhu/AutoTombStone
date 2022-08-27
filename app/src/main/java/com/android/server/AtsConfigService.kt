@@ -42,11 +42,4 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
 
     }
 
-    override fun restartSystem() {
-
-        val manager = context.getSystemService(Context.POWER_SERVICE) as PowerManager;
-        manager.reboot("ats service reboot")
-    }
-
-
 }

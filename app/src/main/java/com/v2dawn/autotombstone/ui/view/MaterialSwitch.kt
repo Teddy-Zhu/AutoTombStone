@@ -7,10 +7,13 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.text.TextUtils
 import android.util.AttributeSet
+import android.util.TypedValue
 import androidx.appcompat.widget.SwitchCompat
+import androidx.core.R
 import com.v2dawn.autotombstone.utils.factory.dp
 import com.v2dawn.autotombstone.utils.factory.isSystemInDarkMode
 import top.defaults.drawabletoolbox.DrawableBuilder
+
 
 class MaterialSwitch(context: Context, attrs: AttributeSet?) : SwitchCompat(context, attrs) {
 
@@ -49,5 +52,6 @@ class MaterialSwitch(context: Context, attrs: AttributeSet?) : SwitchCompat(cont
         )
         isSingleLine = true
         ellipsize = TextUtils.TruncateAt.END
+
     }
 }

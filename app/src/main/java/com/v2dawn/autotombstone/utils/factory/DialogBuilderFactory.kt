@@ -212,6 +212,7 @@ class DialogBuilder<VB : ViewBinding>(
 
 fun Context.showPopup(view: View, currentIndex: Int, cb: (index: Int) -> Unit) {
     val popupMenu = popupMenu {
+        dropdownGravity = Gravity.END
         section {
             item {
                 labelRes = R.string.follow_process
