@@ -35,10 +35,7 @@ class BroadcastDeliverHook : YukiBaseHooker() {
 
             return null
         }
-        if (processRecord.userId != ActivityManagerService.MAIN_USER) {
-            atsLogD("occur broadcast app main user")
-            return null
-        }
+
         val applicationInfo = processRecord.applicationInfo
         val packageName: String = processRecord.applicationInfo.packageName ?: return null
         // 如果包名为空就不处理(猜测系统进程可能为空)
@@ -47,7 +44,11 @@ class BroadcastDeliverHook : YukiBaseHooker() {
         if (!processName.startsWith(packageName)) {
             return null
         }
+        if (processRecord.userId == ActivityManagerService.MAIN_USER) {
+            atsLogD("[$packageName|$processName] occur broadcast app main user")
 
+            return null
+        }
         // 如果是系统应用并且不是系统黑名单就不处理
         if (applicationInfo.isImportantSystem() || (applicationInfo.isSystem() && !queryBlackSysAppsList()
                 .contains(packageName))
