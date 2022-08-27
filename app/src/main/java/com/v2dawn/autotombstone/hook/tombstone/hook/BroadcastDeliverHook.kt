@@ -47,9 +47,7 @@ class BroadcastDeliverHook : YukiBaseHooker() {
         if (!processName.startsWith(packageName)) {
             return null
         }
-        if (processRecord.userId == ActivityManagerService.MAIN_USER) {
-            return null
-        }
+
         // 如果是系统应用并且不是系统黑名单就不处理
         if (applicationInfo.isImportantSystem() || (applicationInfo.isSystem() && !queryBlackSysAppsList()
                 .contains(packageName))
