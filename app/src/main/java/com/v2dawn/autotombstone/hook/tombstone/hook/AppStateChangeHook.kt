@@ -128,7 +128,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
                 beforeHook {
                     val msg = args(0).cast<Message>() ?: return@beforeHook
                     val context = instance as Context
-
+                    atsLogD("[${context.packageName}] tile msg")
                     if (msg.what == MSG_TILE_CLICKED) {
                         atsLogD("[${context.packageName}] tile click")
                         appStateChangeExecutor.execute(context.packageName, true)
