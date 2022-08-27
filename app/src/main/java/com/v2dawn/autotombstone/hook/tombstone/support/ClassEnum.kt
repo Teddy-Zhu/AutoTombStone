@@ -1,6 +1,8 @@
 package com.v2dawn.autotombstone.hook.tombstone.support;
 
 object ClassEnum {
+
+    const val ProcessErrorStateRecordClass ="com.android.server.am.ProcessErrorStateRecord"
     const val ActivityTaskSupervisorClass = "com.android.server.wm.ActivityTaskSupervisor"
     const val ActivityStackSupervisorClass = "com.android.server.wm.ActivityStackSupervisor"
     const val ActivityStackSupervisorHandlerClas =

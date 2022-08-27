@@ -207,7 +207,7 @@ class AppStateChangeExecutor(
 //                param(StringType)
 //            }.get(acService).int(packageName)
 //            atsLogD("[$packageName] sys:${sysForeground},hasOverlay:${hasOverlay},hasActivity:${hasActivity},import:${importance}")
-            atsLogD("[$packageName] sys:${sysForeground}")
+            atsLogD("[$packageName] sys status:${sysForeground}")
 
         }
 //        atsLogD(" pkg :$packageName isForeground :$isForeground forceRelease :$release")
@@ -319,6 +319,11 @@ class AppStateChangeExecutor(
      */
     private fun onResume(packageName: String, lastBackground: Boolean) {
         atsLogD("[$packageName] onResume handle start")
+
+        if (!lastBackground && !backgroundApps.contains(packageName)) {
+            atsLogD("[$packageName] status not change ignored")
+            return
+        }
         val targetProcessRecords: List<ProcessRecord> =
             getTargetProcessRecords(packageName)
         // 如果目标进程为空就不处理
@@ -531,6 +536,12 @@ class AppStateChangeExecutor(
         // 存放需要冻结/解冻的 processRecord
         val targetProcessRecords: MutableList<ProcessRecord> = ArrayList<ProcessRecord>()
         // 对进程列表加锁
+        var whiteApps: Set<String>
+        var killProcessList: Set<String>
+        packageParam.apply {
+            whiteApps = queryWhiteProcessesList()
+            killProcessList = queryKillProcessesList()
+        }
         synchronized(processRecords) {
             // 遍历进程列表
             for (processRecord in processRecords) {
@@ -550,29 +561,18 @@ class AppStateChangeExecutor(
                 ) {
                     continue
                 }
-
-
                 // 如果白名单进程包含进程则跳过
-                var skip = false
-                packageParam.apply {
 
-                    if (queryWhiteProcessesList().contains(processName)) {
-                        atsLogD("[$processName] white process ignored")
-                        skip = true
-                        return@apply
-                    }
-                    // 如果白名单APP包含包名并且杀死进程不包含进程名就跳过
-                    if (queryWhiteAppList()
-                            .contains(packageName) && !queryKillProcessesList()
-                            .contains(processName)
-                    ) {
-                        atsLogD("[$processName] white app process ignored")
-                        skip = true
-                        return@apply
-                    }
+                if (whiteApps.contains(processName)) {
+                    atsLogD("[$processName] white process ignored")
+                    continue
                 }
-
-                if (skip) {
+                // 如果白名单APP包含包名并且杀死进程不包含进程名就跳过
+                if (whiteApps
+                        .contains(packageName) && !killProcessList
+                        .contains(processName)
+                ) {
+                    atsLogD("[$processName] white app process ignored")
                     continue
                 }
                 // 添加目标进程
