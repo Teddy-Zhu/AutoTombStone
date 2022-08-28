@@ -343,12 +343,12 @@ class AppStateChangeExecutor(
         }
         // 后台应用添加包名
         backgroundApps.add(packageName)
+        val isWhiteApp = whiteApps.contains(packageName)
 
-        if (makeIdle) {
+        if (makeIdle && !isWhiteApp) {
             setAppIdle(packageName, true)
         }
 
-        val isWhiteApp = whiteApps.contains(packageName)
         // 遍历目标进程
         for (targetProcessRecord in targetProcessRecords) {
             // 应用又进入前台了
@@ -410,11 +410,11 @@ class AppStateChangeExecutor(
 
         }
         packageParam.apply {
-            if (!ignoreConfig && wakeLock && !whiteProcessList.contains(packageName)) {
+            if (wakeLock && !isWhiteApp) {
                 PowerManagerService.instance?.release(packageName)
             }
         }
-        if (makeIdle) {
+        if (makeIdle && !isWhiteApp) {
             setAppIdle(packageName, true)
         }
         atsLogD("[$packageName] onPause handle end")
