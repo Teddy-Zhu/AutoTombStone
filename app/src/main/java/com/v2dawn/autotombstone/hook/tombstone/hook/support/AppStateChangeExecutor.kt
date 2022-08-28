@@ -349,6 +349,7 @@ class AppStateChangeExecutor(
             setAppIdle(packageName, true)
         }
 
+        val needFreezerProcesses = arrayListOf<ProcessRecord>()
         // 遍历目标进程
         for (targetProcessRecord in targetProcessRecords) {
             // 应用又进入前台了
@@ -391,6 +392,7 @@ class AppStateChangeExecutor(
             }
 
             if (stopService) {
+//                needStopProcesses.add(targetProcessRecord)
                 stopServiceLocked(targetProcessRecord)
             }
 
@@ -403,8 +405,9 @@ class AppStateChangeExecutor(
                 }
             } else {
                 if (freeze) {
-                    atsLogD("[$processName] freezer")
-                    freezeUtils.freezer(targetProcessRecord)
+//                    atsLogD("[$processName] freezer")
+//                    freezeUtils.freezer(targetProcessRecord)
+                    needFreezerProcesses.add(targetProcessRecord)
                 }
             }
 
@@ -414,6 +417,13 @@ class AppStateChangeExecutor(
                 PowerManagerService.instance?.release(packageName)
             }
         }
+        if (needFreezerProcesses.isNotEmpty()) {
+            needFreezerProcesses.forEach {
+                atsLogD("[${it.processName}] freezer")
+                freezeUtils.freezer(it)
+            }
+        }
+
         if (makeIdle && !isWhiteApp) {
             setAppIdle(packageName, true)
         }
@@ -554,77 +564,6 @@ class AppStateChangeExecutor(
         }
     }
 
-    /**
-     * APP切换至前台
-     *
-     * @param packageName 包名
-     */
-    @Deprecated("use new replace")
-    private fun onResume(packageName: String, lastBackground: Boolean) {
-        atsLogD("[$packageName] onResume handle start")
-        backgroundApps.remove(packageName)
-
-        if (!lastBackground) {
-            atsLogD("[$packageName] status not change ignored")
-            return
-        }
-        val targetProcessRecords: List<ProcessRecord> =
-            getTargetProcessRecords(packageName, lastBackground)
-        // 如果目标进程为空就不处理
-        if (targetProcessRecords.isEmpty()) {
-            return
-        }
-        // 遍历目标进程列表
-        for (targetProcessRecord in targetProcessRecords) {
-//            atsLogD("process: $targetProcessRecord")
-
-            // 确保APP不在后台
-            if (backgroundApps.contains(packageName) && !lastBackground) {
-                return
-            }
-            if (targetProcessRecord.processName.equals(packageName)) {
-
-                appOpsService.javaClass.method {
-                    name = MethodEnum.setMode
-                    param(
-                        IntType, IntType,
-                        StringType, IntType
-                    )
-                    superClass()
-                }.get(appOpsService)
-                    .call(
-                        OP_WAKE_LOCK,
-                        targetProcessRecord.userId,
-                        packageName,
-                        AppOpsManager.MODE_DEFAULT
-                    )
-
-//                    ClassEnum.UsageStatsServiceClass.clazz.method {
-//                        name = MethodEnum.setAppInactive
-//                        param(StringType, Boolean.javaClass)
-//                    }.get(mUsageStatsService).call(packageName, false)
-//
-//                    loggerD(
-//                        msg = "set app:$packageName active, bucket:" + ClassEnum.UsageStatsServiceClass.clazz.method {
-//                            name = MethodEnum.getAppStandbyBucket
-//                            emptyParam()
-//                        }.get(mUsageStatsService).invoke<Boolean>()
-//                    )
-//
-//                    ClassEnum.UsageStatsServiceClass.clazz.method {
-//                        name = MethodEnum.setAppStandbyBucket
-//                        param(StringType, IntType)
-//                    }.get(mUsageStatsService)
-//                        .call(packageName, UsageStatsManager.STANDBY_BUCKET_ACTIVE)
-
-
-            }
-            // 解冻进程
-            freezeUtils.unFreezer(targetProcessRecord)
-        }
-//        setAppIdle(packageName, false)
-        atsLogD("[$packageName] onResume handle end")
-    }
 
     private fun stopServiceLocked(processRecord: ProcessRecord) {
         atsLogD("[${processRecord.processName}] try to stop services")
@@ -665,133 +604,6 @@ class AppStateChangeExecutor(
                 }
             }
         }
-    }
-
-    /**
-     * APP切换至后台
-     *
-     * @param packageName 包名
-     */
-    @Deprecated("use new replace")
-    private fun onPause(packageName: String, ignoreConfig: Boolean = false) {
-        atsLogD("[$packageName] onPause handle start")
-
-        //double check 应用是否前台
-        val isAppForeground =
-            isAppForeground(packageName)
-//                    || hasOverlayUiPackages.contains(packageName) || hasAudioFocusPackages.contains(packageName)
-        // 如果是前台应用就不处理
-        if (!ignoreConfig && isAppForeground) {
-            atsLogD("[$packageName] is foreground ignored")
-            return
-        }
-
-        val targetProcessRecords: List<ProcessRecord> =
-            getTargetProcessRecords(packageName, ignoreConfig)
-        // 如果目标进程为空就不处理
-        if (targetProcessRecords.isEmpty()) {
-            return
-        }
-        // 后台应用添加包名
-        backgroundApps.add(packageName)
-
-        setAppIdle(packageName, true)
-
-        val killProcessList: Set<String>
-        val whiteProcessList: Set<String>
-        packageParam.apply {
-            killProcessList = queryKillProcessesList()
-            whiteProcessList = queryWhiteProcessesList()
-        }
-        // 遍历目标进程
-        for (targetProcessRecord in targetProcessRecords) {
-            // 应用又进入前台了
-            if (!backgroundApps.contains(packageName)) {
-                // 为保证解冻顺利
-                return
-            }
-
-            // 目标进程名
-            val processName: String = targetProcessRecord.processName!!
-            if (processName == packageName) {
-
-                appOpsService.javaClass
-                    .method {
-                        name = MethodEnum.setMode
-                        param(
-                            IntType, IntType,
-                            StringType, IntType
-                        )
-                        superClass()
-                    }.get(appOpsService)
-                    .call(
-                        OP_WAKE_LOCK,
-                        targetProcessRecord.userId,
-                        packageName,
-                        AppOpsManager.MODE_IGNORED
-                    )
-
-//                    ClassEnum.UsageStatsServiceClass.clazz.method {
-//                        name = MethodEnum.setAppStandbyBucket
-//                        param(StringType, IntType)
-//                    }.get(mUsageStatsService)
-//                        .call(packageName, STANDBY_BUCKET_NEVER)
-//                    ClassEnum.UsageStatsServiceClass.clazz.method {
-//                        name = MethodEnum.setAppInactive
-//                        param(StringType, Boolean.javaClass)
-//                    }.get(mUsageStatsService).call(packageName, true)
-//
-//                    ClassEnum.ActivityManagerServiceClass.clazz
-//                        .method {
-//                            name = MethodEnum.makePackageIdle
-//                            param(
-//                                StringType, IntType
-//                            )
-//                        }.get(activityManagerService.activityManagerService)
-//                        .call(
-//                            packageName,
-//                            targetProcessRecord.userId
-//                        )
-//
-//                    loggerD(
-//                        msg = "set app:$packageName inactive,bucket:" + ClassEnum.UsageStatsServiceClass.clazz.method {
-//                            name = MethodEnum.getAppStandbyBucket
-//                            emptyParam()
-//                        }.get(mUsageStatsService).invoke<Boolean>()
-//                    )
-
-
-            }
-            // 如果白名单进程包含进程则跳过
-            if (whiteProcessList.contains(processName)) {
-                atsLogD("[$processName] white process ignored");
-                continue;
-            }
-
-            stopServiceLocked(targetProcessRecord)
-            // 目标进程PID
-            val pid: Int = targetProcessRecord.pid
-            // 如果杀死进程列表包含进程名
-
-            if (killProcessList.contains(processName)) {
-                atsLogD("[$processName] kill")
-                // 杀死进程
-                freezeUtils.kill(pid)
-            } else {
-                atsLogD("[$processName] freezer")
-                freezeUtils.freezer(targetProcessRecord)
-            }
-
-        }
-        packageParam.apply {
-            if (!queryWhiteProcessesList().contains(packageName)) {
-                PowerManagerService.instance?.release(packageName)
-            }
-        }
-
-//        setAppIdle(packageName, true)
-
-        atsLogD("[$packageName] onPause handle end")
     }
 
     private fun getTargetProcessRecordsNew(
