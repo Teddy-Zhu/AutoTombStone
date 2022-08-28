@@ -54,6 +54,18 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
         return true
     }
 
+    override fun freezeApp(packageName: String?): Boolean {
+        if (packageName == null) return false
+        appStateChangeExecutor.freezeApp(packageName)
+        return true
+    }
+
+    override fun unFreezeApp(packageName: String?): Boolean {
+        if (packageName == null) return false
+        appStateChangeExecutor.unFreezeApp(packageName)
+        return true
+    }
+
     override fun stopService(packageName: String?): Boolean {
         if (packageName == null) return false
         appStateChangeExecutor.stopServices(packageName)

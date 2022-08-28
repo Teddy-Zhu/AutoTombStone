@@ -72,7 +72,7 @@ class AppStateChangeExecutor(
         val hasOverlayUiPackages = hashSetOf<String>()
         val hasAudioFocusPackages = hashSetOf<String>()
 
-        const val DELAY_TIME: Long = 5000
+        const val DELAY_TIME: Long = 10000
         private val SYS_SUPPORTS_SCHEDGROUPS = File("/dev/cpuctl/tasks").exists()
         private var OP_WAKE_LOCK = 40
         private var STANDBY_BUCKET_NEVER = 50
@@ -263,6 +263,26 @@ class AppStateChangeExecutor(
         }
     }
 
+    public fun freezeApp(packageName: String) {
+        atsLogD("[$packageName] user operate freeze")
+        operateExecutor.submit {
+            onPauseNew(
+                packageName, false, false,
+                false, true, false, false, false
+            )
+        }
+    }
+
+    public fun unFreezeApp(packageName: String) {
+        atsLogD("[$packageName] user operate unfreeze")
+        operateExecutor.submit {
+            onResumeNew(
+                packageName, false, false,
+                false, true, false
+            )
+        }
+    }
+
     public fun stopServices(packageName: String) {
         atsLogD("[$packageName] user operate stopServices")
 
@@ -279,6 +299,9 @@ class AppStateChangeExecutor(
 
         operateExecutor.submit {
             setAppIdle(packageName, idle)
+            if (idle) {
+                makePackageIdle(packageName)
+            }
         }
     }
 
@@ -299,6 +322,8 @@ class AppStateChangeExecutor(
         val manager = context.getSystemService(Context.POWER_SERVICE) as PowerManager;
         manager.reboot("reboot")
     }
+
+
     //////////
 
 
@@ -346,10 +371,9 @@ class AppStateChangeExecutor(
         val isWhiteApp = whiteApps.contains(packageName)
 
         if (makeIdle && !isWhiteApp) {
-            setAppIdle(packageName, true)
+            makePackageIdle(packageName)
         }
 
-        val needFreezerProcesses = arrayListOf<ProcessRecord>()
         // 遍历目标进程
         for (targetProcessRecord in targetProcessRecords) {
             // 应用又进入前台了
@@ -405,9 +429,9 @@ class AppStateChangeExecutor(
                 }
             } else {
                 if (freeze) {
-//                    atsLogD("[$processName] freezer")
-//                    freezeUtils.freezer(targetProcessRecord)
-                    needFreezerProcesses.add(targetProcessRecord)
+                    atsLogD("[$processName] freezer")
+                    freezeUtils.freezer(targetProcessRecord)
+//                    needFreezerProcesses.add(targetProcessRecord)
                 }
             }
 
@@ -417,15 +441,17 @@ class AppStateChangeExecutor(
                 PowerManagerService.instance?.release(packageName)
             }
         }
-        if (needFreezerProcesses.isNotEmpty()) {
-            needFreezerProcesses.forEach {
-                atsLogD("[${it.processName}] freezer")
-                freezeUtils.freezer(it)
-            }
-        }
+
+//        if (needFreezerProcesses.isNotEmpty()) {
+//            needFreezerProcesses.forEach {
+//                atsLogD("[${it.processName}] freezer")
+//                freezeUtils.freezer(it)
+//            }
+//        }
 
         if (makeIdle && !isWhiteApp) {
             setAppIdle(packageName, true)
+            makePackageIdle(packageName)
         }
         atsLogD("[$packageName] onPause handle end")
     }
@@ -435,7 +461,9 @@ class AppStateChangeExecutor(
         packageName: String,
         doubleCheckStatus: Boolean,
         ignoreConfig: Boolean,
-        lastStatusChange: Boolean = true
+        lastStatusChange: Boolean = true,
+        freeze: Boolean = true,
+        wakeLock: Boolean = true
     ) {
         atsLogD("[$packageName] onResume handle start")
         backgroundApps.remove(packageName)
@@ -466,7 +494,7 @@ class AppStateChangeExecutor(
                 }
             }
             val processName = targetProcessRecord.processName
-            if (processName.equals(packageName)) {
+            if (wakeLock && processName.equals(packageName)) {
                 setWakeLock(packageName, targetProcessRecord.userId, AppOpsManager.MODE_DEFAULT)
             }
 
@@ -474,7 +502,10 @@ class AppStateChangeExecutor(
                 continue
             }
             // 解冻进程
-            freezeUtils.unFreezer(targetProcessRecord)
+            if (freeze) {
+                atsLogD("[$processName] unfreezer")
+                freezeUtils.unFreezer(targetProcessRecord)
+            }
         }
 //        setAppIdle(packageName, false)
         atsLogD("[$packageName] onResume handle end")
@@ -545,6 +576,16 @@ class AppStateChangeExecutor(
             atsLogD("packageName=$packageName not run, ignored")
             false
         }
+    }
+
+    private fun makePackageIdle(packageName: String) {
+
+        activityManagerService.activityManagerService.javaClass.method {
+            name = "makePackageIdle"
+            param(StringType, IntType)
+            superClass()
+        }.get(activityManagerService.activityManagerService)
+            .call(packageName, ActivityManagerService.MAIN_USER)
     }
 
     @SuppressLint("NewApi")
@@ -636,68 +677,6 @@ class AppStateChangeExecutor(
                     continue
                 }
 
-                // 添加目标进程
-                targetProcessRecords.add(processRecord)
-            }
-        }
-        return targetProcessRecords
-    }
-
-    /**
-     * 获取目标进程
-     *
-     * @param packageName 包名
-     * @return 目标进程列表
-     */
-    private fun getTargetProcessRecords(
-        packageName: String,
-        ignoreConfig: Boolean = false
-    ): List<ProcessRecord> {
-        // 从进程列表对象获取所有进程
-        val processRecords: List<ProcessRecord> =
-            processList.processRecords
-        // 存放需要冻结/解冻的 processRecord
-        val targetProcessRecords: MutableList<ProcessRecord> = ArrayList<ProcessRecord>()
-        // 对进程列表加锁
-        var whiteApps: Set<String>
-        var killProcessList: Set<String>
-        packageParam.apply {
-            whiteApps = queryWhiteAppList()
-            killProcessList = queryKillProcessesList()
-        }
-        synchronized(processRecords) {
-            // 遍历进程列表
-            for (processRecord in processRecords) {
-                if (processRecord.userId != ActivityManagerService.MAIN_USER) {
-                    continue
-                }
-                val applicationInfo: ApplicationInfo = processRecord.applicationInfo ?: continue
-                // 如果包名和事件的包名不同就不处理
-                if (applicationInfo.packageName != packageName) {
-                    continue
-                }
-                // 获取进程名
-                val processName: String = processRecord.processName!!
-                // 如果进程名称不是包名开头就跳过 且非app启动
-                if (!processName.startsWith(packageName) && processRecord.applicationInfo
-                        .packageName != packageName
-                ) {
-                    continue
-                }
-                // 如果白名单进程包含进程则跳过
-
-                if (!ignoreConfig && whiteApps.contains(processName)) {
-                    atsLogD("[$processName] white process ignored")
-                    continue
-                }
-                // 如果白名单APP包含包名并且杀死进程不包含进程名就跳过
-                if (!ignoreConfig && whiteApps
-                        .contains(packageName) && !killProcessList
-                        .contains(processName)
-                ) {
-                    atsLogD("[$processName|$packageName] white app process ignored")
-                    continue
-                }
                 // 添加目标进程
                 targetProcessRecords.add(processRecord)
             }

@@ -10,6 +10,10 @@ interface IAtsConfigService {
 
     boolean unControl(String packageName);
 
+    boolean freezeApp(String packageName);
+
+    boolean unFreezeApp(String packageName);
+
     boolean stopService(String packageName);
 
     boolean makeIdle(String packageName, boolean idle);

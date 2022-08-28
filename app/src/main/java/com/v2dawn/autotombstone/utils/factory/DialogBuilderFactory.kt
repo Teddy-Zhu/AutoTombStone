@@ -213,7 +213,8 @@ class DialogBuilder<VB : ViewBinding>(
 fun Context.showOperatePopup(view: View, cb: (index: Int, resId: Int) -> Unit) {
     val operateList = listOf(
         R.string.control, R.string.uncontrol, R.string.stop_services,
-        R.string.active, R.string.inactive, R.string.kill_app
+        R.string.active, R.string.inactive, R.string.kill_app, R.string.freeze_app,
+        R.string.unfreeze_app
     )
     val popupMenu = popupMenu {
         dropdownGravity = Gravity.END

@@ -33,6 +33,8 @@
     <string name="active">解除休眠</string>
     <string name="inactive">强制休眠</string>
     <string name="kill_app">杀掉</string>
+    <string name="freeze_app">冻结App</string>
+    <string name="unfreeze_app">解冻App</string>
 
 
 </resources>

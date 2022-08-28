@@ -1,11 +1,13 @@
 package com.v2dawn.autotombstone.ui.activity
 
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.IAtsConfigService
 import android.os.IBinder
 import android.util.Log
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.BaseAdapter
 import androidx.core.util.Pair
 import androidx.core.view.isVisible
@@ -95,6 +97,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                         setText(filterText)
                         setSelection(filterText.length)
                     }
+                    showKeyboard()
                 }
                 confirmButton {
                     filterText = binding.iconFiltersEdit.text.toString().trim()
@@ -164,22 +167,36 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                                 when (resId) {
                                     R.string.control -> {
                                         getAtsService().control(bean.packageName)
+                                        toast("压制成功")
                                     }
                                     R.string.uncontrol -> {
                                         getAtsService().unControl(bean.packageName)
+                                        toast("恢复成功")
                                     }
                                     R.string.stop_services -> {
                                         getAtsService().stopService(bean.packageName)
+                                        toast("停止服务成功")
                                     }
                                     R.string.active -> {
                                         getAtsService().makeIdle(bean.packageName, false)
+                                        toast("解除App休眠成功")
                                     }
                                     R.string.inactive -> {
                                         getAtsService().makeIdle(bean.packageName, true)
+                                        toast("强制App休眠成功")
 
                                     }
                                     R.string.kill_app -> {
                                         getAtsService().forceStop(bean.packageName)
+                                        toast("App强制停止成功")
+                                    }
+                                    R.string.freeze_app -> {
+                                        getAtsService().freezeApp(bean.packageName)
+                                        toast("冻结App成功")
+                                    }
+                                    R.string.unfreeze_app -> {
+                                        getAtsService().unFreezeApp(bean.packageName)
+                                        toast("解冻App成功")
                                     }
                                 }
                             }
@@ -247,6 +264,11 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
 //        })
     }
 
+    fun showKeyboard() {
+        val inputMethodManager: InputMethodManager =
+            this.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+    }
     val onClickAction: View.OnClickListener = View.OnClickListener {
         toast("${it.tag} 是 ${it.tooltipText}")
     }

@@ -33,5 +33,7 @@
     <string name="active">Make Active</string>
     <string name="inactive">Make InActive</string>
     <string name="kill_app">kill app</string>
+    <string name="freeze_app">Freeze App</string>
+    <string name="unfreeze_app">UnFreeze App</string>
 
 </resources>
