@@ -627,12 +627,27 @@ class AppStateChangeExecutor(
     }
 
     private fun stopServiceLocked(processRecord: ProcessRecord) {
+        atsLogD("[${processRecord.processName}] try to stop services")
+        activityManagerService.activeServices.activeServices.javaClass.method {
+            name = "stopInBackgroundLocked"
+            param(IntType)
+        }.get(activityManagerService.activeServices.activeServices).call(processRecord.uid)
+    }
+
+    private fun stopServiceLocked_dep(processRecord: ProcessRecord) {
         stopServiceLocked(processRecord, false)
     }
 
-    private fun stopServiceLocked(processRecord: ProcessRecord, enqueueOomAdj: Boolean) {
+    private fun stopServiceLocked(
+        processRecord: ProcessRecord,
+        enqueueOomAdj: Boolean,
+        setDelay: Boolean = false
+    ) {
         for (processServiceRecord in processRecord.processServiceRecords) {
             for (mService in processServiceRecord.mServices) {
+                if (setDelay) {
+                    mService.setDelay(false)
+                }
                 atsLogD("[${mService.serviceInfo.name}] try to stop")
                 if (useOriginMethod) {
                     activityManagerService.activeServices.activeServices.javaClass

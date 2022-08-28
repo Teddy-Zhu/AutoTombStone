@@ -24,6 +24,12 @@ class ServiceRecord(val serviceRecord: Any) {
         }.get(serviceRecord).cast()!!
     )
 
+    public fun setDelay(delay: Boolean) {
+        serviceRecord.javaClass.field {
+            name = "delayed"
+        }.get(serviceRecord).set(delay)
+    }
+
     override fun toString(): String {
         return "ServiceRecord{" +
                 "isForeground=" + isForeground +

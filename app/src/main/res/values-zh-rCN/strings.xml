@@ -30,8 +30,8 @@
     <string name="control">压制</string>
     <string name="uncontrol">解压</string>
     <string name="stop_services">关闭服务</string>
-    <string name="active">强制休眠</string>
-    <string name="inactive">解除休眠</string>
+    <string name="active">解除休眠</string>
+    <string name="inactive">强制休眠</string>
     <string name="kill_app">杀掉</string>
 
 
