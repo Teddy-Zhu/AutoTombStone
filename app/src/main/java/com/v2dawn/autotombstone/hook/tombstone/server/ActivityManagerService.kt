@@ -86,6 +86,7 @@ class ActivityManagerService(
         activityManagerService.javaClass.method {
             name = "forceStopPackage"
             param(StringType, IntType)
+            superClass()
         }.get(activityManagerService).invoke<Boolean>(packageName, MAIN_USER)
     }
 
