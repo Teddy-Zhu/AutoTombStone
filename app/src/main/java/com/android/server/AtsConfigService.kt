@@ -42,4 +42,39 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
 
     }
 
+    override fun control(packageName: String?): Boolean {
+        if (packageName == null) return false
+        appStateChangeExecutor.controlApp(packageName)
+        return true
+    }
+
+    override fun unControl(packageName: String?): Boolean {
+        if (packageName == null) return false
+        appStateChangeExecutor.unControlApp(packageName)
+        return true
+    }
+
+    override fun stopService(packageName: String?): Boolean {
+        if (packageName == null) return false
+        appStateChangeExecutor.stopServices(packageName)
+        return true
+    }
+
+    override fun makeIdle(packageName: String?, idle: Boolean): Boolean {
+        if (packageName == null) return false
+        appStateChangeExecutor.makeAppIdle(packageName,idle)
+        return true
+    }
+
+    override fun forceStop(packageName: String?): Boolean {
+        if (packageName == null) return false
+        appStateChangeExecutor.forceStopApp(packageName)
+        return true
+    }
+
+    override fun restartSystem(): Boolean {
+        appStateChangeExecutor.restartSystem()
+        return true
+    }
+
 }

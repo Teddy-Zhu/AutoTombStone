@@ -6,4 +6,15 @@ import java.lang.String;
 interface IAtsConfigService {
     void configChange(String name,String key);
 
+    boolean control(String packageName);
+
+    boolean unControl(String packageName);
+
+    boolean stopService(String packageName);
+
+    boolean makeIdle(String packageName, boolean idle);
+
+    boolean forceStop(String packageName);
+
+    boolean restartSystem();
 }

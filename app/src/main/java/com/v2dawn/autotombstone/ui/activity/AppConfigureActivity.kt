@@ -2,16 +2,24 @@ package com.v2dawn.autotombstone.ui.activity
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.IAtsConfigService
+import android.os.IBinder
 import android.util.Log
 import android.view.View
 import android.widget.BaseAdapter
 import androidx.core.util.Pair
 import androidx.core.view.isVisible
+import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.YukiHookAPI
+import com.highcapable.yukihookapi.hook.factory.classOf
+import com.highcapable.yukihookapi.hook.factory.method
+import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.R
 import com.v2dawn.autotombstone.databinding.ActivityAppConfigBinding
 import com.v2dawn.autotombstone.databinding.AdapterItemAppBinding
 import com.v2dawn.autotombstone.databinding.DiaAppFilterBinding
+import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogE
 import com.v2dawn.autotombstone.model.AppItemData
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
 import com.v2dawn.autotombstone.utils.factory.*
@@ -44,6 +52,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
 
     /** 全部的App数据 */
     private var appConfigData = ArrayList<AppItemData>()
+    var atsConfigService: IAtsConfigService? = null
 
     override fun onCreate() {
         /** 检查激活状态 */
@@ -101,9 +110,9 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         }
 
         /** 设置同步列表按钮点击事件 */
-        binding.configTitleSync.setOnClickListener {
-            onStartRefresh(true)
-        }
+//        binding.configTitleSync.setOnClickListener {
+//            onStartRefresh(true)
+//        }
         /** 设置列表元素和 Adapter */
         binding.configListView.apply {
             bindAdapter {
@@ -146,6 +155,36 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                         binding.sysApp.setOnClickListener(onClickAction)
                         binding.sysImpApp.setOnClickListener(onClickAction)
                         binding.xpModule.setOnClickListener(onClickAction)
+                        binding.appContent.setOnLongClickListener {
+                            showOperatePopup(it) { index, resId ->
+                                if (!YukiHookAPI.Status.isModuleActive) {
+                                    toast("模块未激活")
+                                    return@showOperatePopup
+                                }
+                                when (resId) {
+                                    R.string.control -> {
+                                        getAtsService().control(bean.packageName)
+                                    }
+                                    R.string.uncontrol -> {
+                                        getAtsService().unControl(bean.packageName)
+                                    }
+                                    R.string.stop_services -> {
+                                        getAtsService().stopService(bean.packageName)
+                                    }
+                                    R.string.active -> {
+                                        getAtsService().makeIdle(bean.packageName, false)
+                                    }
+                                    R.string.inactive -> {
+                                        getAtsService().makeIdle(bean.packageName, true)
+
+                                    }
+                                    R.string.kill_app -> {
+                                        getAtsService().forceStop(bean.packageName)
+                                    }
+                                }
+                            }
+                            true
+                        }
                         binding.appContent.setOnClickListener {
 
                             var transitionViews = ArrayList<Pair<View, String>>().apply {
@@ -223,6 +262,30 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             appFilteredData[position]
         )
         (binding.configListView.adapter as BaseAdapter).notifyDataSetChanged()
+    }
+
+
+    fun getAtsService(): IAtsConfigService {
+        if (atsConfigService == null) {
+            try {
+                val binder: IBinder = classOf(
+                    ClassEnum.ServiceManagerClass,
+                    Thread.currentThread().contextClassLoader
+                )
+                    .method {
+                        name = "getService"
+                        param(StringType)
+                    }.get().invoke<IBinder>(AtsConfigService.serviceName)!!
+
+                atsConfigService =
+                    IAtsConfigService.Stub.asInterface(binder)
+            } catch (e: Exception) {
+                atsLogE("ats config service get error", e = e)
+            }
+
+        }
+
+        return atsConfigService!!
     }
 
     private lateinit var transitionBack: Intent;

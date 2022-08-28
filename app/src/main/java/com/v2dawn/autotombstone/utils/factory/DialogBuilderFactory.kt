@@ -7,6 +7,7 @@ import android.app.TimePickerDialog
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -209,6 +210,27 @@ class DialogBuilder<VB : ViewBinding>(
     }
 }
 
+fun Context.showOperatePopup(view: View, cb: (index: Int, resId: Int) -> Unit) {
+    val operateList = listOf(
+        R.string.control, R.string.uncontrol, R.string.stop_services,
+        R.string.active, R.string.inactive, R.string.kill_app
+    )
+    val popupMenu = popupMenu {
+        dropdownGravity = Gravity.END
+        section {
+            for ((index, value) in operateList.withIndex()) {
+                item {
+                    labelRes = value
+                    callback = {
+                        cb(index, value)
+                    }
+                }
+            }
+        }
+    }
+
+    popupMenu.show(this, view)
+}
 
 fun Context.showPopup(view: View, currentIndex: Int, cb: (index: Int) -> Unit) {
     val popupMenu = popupMenu {

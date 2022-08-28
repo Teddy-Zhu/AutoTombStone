@@ -30,6 +30,7 @@ import com.v2dawn.autotombstone.hook.tombstone.support.atsLogW
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
 import com.v2dawn.autotombstone.utils.factory.navigate
 import com.v2dawn.autotombstone.utils.factory.showDialog
+import com.v2dawn.autotombstone.utils.factory.toast
 
 
 class MainActivity : BaseActivity<ActivityMainBinding>() {
@@ -151,12 +152,16 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     fun restartSystem() {
-
+        if (!YukiHookAPI.Status.isModuleActive) {
+            toast("模块未激活,该功能无法使用")
+            return
+        }
         showDialog {
             title = "提示"
             msg = "确认重启吗？除模块升级或激活外,修改配置无需重启即可生效"
             confirmButton {
-                Shell.cmd("reboot").submit();
+//                Shell.cmd("reboot").submit();
+                getAtsService().restartSystem()
             }
             cancelButton()
         }
@@ -166,6 +171,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         Log.d(TAG, "pref change $configName , $key")
 
         if (!YukiHookAPI.Status.isModuleActive) {
+            toast("模块未激活")
             return
         }
         getAtsService().configChange(configName, key)

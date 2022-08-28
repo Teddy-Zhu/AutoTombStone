@@ -27,5 +27,11 @@
     <string name="use_freezer_api">use freezer api</string>
     <string name="use_freezer_v2">use freezer v2</string>
     <string name="use_freezer_v1">use freezer v1</string>
+    <string name="control">control</string>
+    <string name="uncontrol">unControl</string>
+    <string name="stop_services">Stop Services</string>
+    <string name="active">Make Active</string>
+    <string name="inactive">Make InActive</string>
+    <string name="kill_app">kill app</string>
 
 </resources>

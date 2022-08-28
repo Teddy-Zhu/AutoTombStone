@@ -59,39 +59,39 @@
 
         <androidx.constraintlayout.utils.widget.ImageFilterView
             android:id="@+id/config_title_up"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_marginEnd="5dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="10dp"
             android:src="@mipmap/ic_page_top"
             android:tint="@color/colorTextGray"
             android:tooltipText="滚动到顶部" />
 
         <androidx.constraintlayout.utils.widget.ImageFilterView
             android:id="@+id/config_title_down"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_marginEnd="15dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="10dp"
             android:src="@mipmap/ic_page_bottom"
             android:tint="@color/colorTextGray"
             android:tooltipText="滚动到底部" />
 
         <androidx.constraintlayout.utils.widget.ImageFilterView
             android:id="@+id/config_title_filter"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_marginEnd="10dp"
             android:src="@mipmap/ic_filter"
             android:tint="@color/colorTextGray"
             android:tooltipText="按条件过滤" />
 
-        <androidx.constraintlayout.utils.widget.ImageFilterView
-            android:id="@+id/config_title_sync"
-            android:layout_width="23dp"
-            android:layout_height="23dp"
-            android:layout_marginEnd="10dp"
-            android:src="@mipmap/ic_sync"
-            android:tint="@color/colorTextGray"
-            android:tooltipText="同步列表" />
+<!--        <androidx.constraintlayout.utils.widget.ImageFilterView-->
+<!--            android:id="@+id/config_title_sync"-->
+<!--            android:layout_width="23dp"-->
+<!--            android:layout_height="23dp"-->
+<!--            android:layout_marginEnd="10dp"-->
+<!--            android:src="@mipmap/ic_sync"-->
+<!--            android:tint="@color/colorTextGray"-->
+<!--            android:tooltipText="同步列表" />-->
     </LinearLayout>
 
     <LinearLayout
@@ -115,11 +115,11 @@
             android:tint="@color/colorTextDark" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:alpha="0.6"
             android:lineSpacingExtra="5dp"
-            android:text="启用后 普通APP 将不在墓碑。\n系统App关闭后将会被墓碑谨慎关闭。\n系统特殊App全部禁止启用。"
+            android:text="启用后 普通APP 将不在墓碑。系统App关闭后将会被墓碑谨慎关闭。\n系统特殊App全部禁止启用。\n长按进入快捷菜单"
             android:textColor="@color/colorTextGray"
             android:textSize="11sp"
             tools:ignore="SmallSp" />
