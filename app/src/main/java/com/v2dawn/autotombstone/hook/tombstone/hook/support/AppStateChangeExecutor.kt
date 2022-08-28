@@ -213,12 +213,12 @@ class AppStateChangeExecutor(
         }
 //        atsLogD(" pkg :$packageName isForeground :$isForeground forceRelease :$release")
 
-        val lastBackground = backgroundApps.contains(packageName)
+        val runInFreeze = backgroundApps.contains(packageName)
         // 重要系统APP
         val isImportantSystemApp = isImportantSystemApp(packageName)
         if (isImportantSystemApp) {
             atsLogD("[$packageName] is important system app")
-            if (!lastBackground) {
+            if (!runInFreeze) {
                 return
             }
         }
@@ -228,7 +228,7 @@ class AppStateChangeExecutor(
         packageParam.apply {
             if (isSystem && !queryBlackSysAppsList().contains(packageName)) {
                 atsLogD("[$packageName] is white system app")
-                if (!lastBackground) {
+                if (!runInFreeze) {
                     return
                 }
                 return
@@ -237,11 +237,11 @@ class AppStateChangeExecutor(
 
         if (isForeground) {
             //继续事件
-            onResume(packageName, lastBackground)
+            onResumeNew(packageName, true, false, runInFreeze)
         } else {
 
             //暂停事件
-            onPause(packageName)
+            onPauseNew(packageName, true, false)
         }
         atsLogD("[$packageName] resolve end")
 
@@ -251,39 +251,26 @@ class AppStateChangeExecutor(
 
     public fun controlApp(packageName: String) {
         atsLogD("[$packageName] user operate onPause")
-        operateExecutor.submit{
-            onPause(packageName, true)
+        operateExecutor.submit {
+            onPauseNew(packageName, false, false)
         }
     }
 
     public fun unControlApp(packageName: String) {
         atsLogD("[$packageName] user operate onResume")
-        operateExecutor.submit{
-            onResume(packageName, true)
+        operateExecutor.submit {
+            onResumeNew(packageName, false, false, true)
         }
     }
 
     public fun stopServices(packageName: String) {
         atsLogD("[$packageName] user operate stopServices")
 
-        operateExecutor.submit{
-            val targetProcessRecords: List<ProcessRecord> =
-                getTargetProcessRecords(packageName, true)
-            // 如果目标进程为空就不处理
-            if (targetProcessRecords.isEmpty()) {
-                return@submit
-            }
-            val whiteProcessList: Set<String>
-            packageParam.apply {
-                whiteProcessList = queryWhiteProcessesList()
-            }
-            for (targetProcessRecord in targetProcessRecords) {
-
-                if (whiteProcessList.contains(targetProcessRecord.processName)) {
-                    continue
-                }
-                stopServiceLocked(targetProcessRecord)
-            }
+        operateExecutor.submit {
+            onPauseNew(
+                packageName, false, false,
+                false, false, true, false, false
+            )
         }
     }
 
@@ -302,17 +289,187 @@ class AppStateChangeExecutor(
         }
     }
 
-    public fun restartSystem(){
-        operateExecutor.submit{
+    public fun restartSystem() {
+        operateExecutor.submit {
             restart()
         }
     }
-    //////////
 
-    private fun restart(){
+    private fun restart() {
         val manager = context.getSystemService(Context.POWER_SERVICE) as PowerManager;
         manager.reboot("reboot")
     }
+    //////////
+
+
+    fun onPauseNew(
+        packageName: String,
+        doubleCheckStatus: Boolean,
+        ignoreConfig: Boolean,
+        killProcess: Boolean = true,
+        freeze: Boolean = true,
+        stopService: Boolean = true,
+        makeIdle: Boolean = true,
+        wakeLock: Boolean = true
+    ) {
+
+        atsLogD("[$packageName] onPause handle start")
+
+        //double check 应用是否前台
+        if (doubleCheckStatus) {
+            val isAppForeground =
+                isAppForeground(packageName)
+
+            if (isAppForeground) {
+                atsLogD("[$packageName] is foreground ignored")
+                return
+            }
+        }
+        val killProcessList: Set<String>
+        val whiteProcessList: Set<String>
+        val whiteApps: Set<String>
+        packageParam.apply {
+            killProcessList = queryKillProcessesList()
+            whiteProcessList = queryWhiteProcessesList()
+            whiteApps = queryWhiteAppList()
+        }
+
+        val targetProcessRecords: List<ProcessRecord> =
+            getTargetProcessRecordsNew(packageName)
+        // 如果目标进程为空就不处理
+        if (targetProcessRecords.isEmpty()) {
+            atsLogD("[$packageName] empty processes ignored")
+            return
+        }
+        // 后台应用添加包名
+        backgroundApps.add(packageName)
+
+        if (makeIdle) {
+            setAppIdle(packageName, true)
+        }
+
+        val isWhiteApp = whiteApps.contains(packageName)
+        // 遍历目标进程
+        for (targetProcessRecord in targetProcessRecords) {
+            // 应用又进入前台了
+            if (doubleCheckStatus) {
+                if (!backgroundApps.contains(packageName)) {
+                    // 为保证解冻顺利
+                    return
+                }
+            }
+
+            // 目标进程名
+            val processName: String = targetProcessRecord.processName!!
+
+            if (processName == packageName) {
+                // 如果白名单进程包含进程则跳过
+                if (!ignoreConfig && isWhiteApp) {
+                    atsLogD("[$packageName] in white apps ignored")
+                    continue
+                } else {
+                    if (wakeLock) {
+                        setWakeLock(
+                            packageName,
+                            targetProcessRecord.userId,
+                            AppOpsManager.MODE_IGNORED
+                        )
+                    }
+
+                }
+            }
+
+            val isInkillProcess = killProcessList.contains(processName)
+            // 如果白名单APP包含包名并且杀死进程不包含进程名就跳过
+            if (!ignoreConfig && isWhiteApp && !isInkillProcess) {
+                atsLogD("[$processName|$packageName] white app process ignored")
+                continue
+            } else if (!ignoreConfig && whiteProcessList.contains(processName)) {
+                // 如果白名单进程包含进程则跳过
+                atsLogD("[$processName] white process ignored");
+                continue;
+            }
+
+            if (stopService) {
+                stopServiceLocked(targetProcessRecord)
+            }
+
+            // 如果杀死进程列表包含进程名
+            if (isInkillProcess) {
+                // 杀死进程
+                if (killProcess) {
+                    atsLogD("[$processName] kill")
+                    freezeUtils.kill(targetProcessRecord.pid)
+                }
+            } else {
+                if (freeze) {
+                    atsLogD("[$processName] freezer")
+                    freezeUtils.freezer(targetProcessRecord)
+                }
+            }
+
+        }
+        packageParam.apply {
+            if (!ignoreConfig && wakeLock && !whiteProcessList.contains(packageName)) {
+                PowerManagerService.instance?.release(packageName)
+            }
+        }
+        if (makeIdle) {
+            setAppIdle(packageName, true)
+        }
+        atsLogD("[$packageName] onPause handle end")
+    }
+
+
+    private fun onResumeNew(
+        packageName: String,
+        doubleCheckStatus: Boolean,
+        ignoreConfig: Boolean,
+        lastStatusChange: Boolean = true
+    ) {
+        atsLogD("[$packageName] onResume handle start")
+        backgroundApps.remove(packageName)
+
+        if (!lastStatusChange) {
+            atsLogD("[$packageName] status not change ignored")
+            return
+        }
+        val targetProcessRecords: List<ProcessRecord> =
+            getTargetProcessRecordsNew(packageName)
+        // 如果目标进程为空就不处理
+        if (targetProcessRecords.isEmpty()) {
+            atsLogD("[$packageName] empty processes ignored")
+            return
+        }
+        val whiteProcessList: Set<String>
+        packageParam.apply {
+            whiteProcessList = queryWhiteProcessesList()
+        }
+        // 遍历目标进程列表
+        for (targetProcessRecord in targetProcessRecords) {
+//            atsLogD("process: $targetProcessRecord")
+
+            if (doubleCheckStatus) {
+                // 确保APP不在后台
+                if (backgroundApps.contains(packageName)) {
+                    return
+                }
+            }
+            val processName = targetProcessRecord.processName
+            if (processName.equals(packageName)) {
+                setWakeLock(packageName, targetProcessRecord.userId, AppOpsManager.MODE_DEFAULT)
+            }
+
+            if (!ignoreConfig && whiteProcessList.contains(processName)) {
+                continue
+            }
+            // 解冻进程
+            freezeUtils.unFreezer(targetProcessRecord)
+        }
+//        setAppIdle(packageName, false)
+        atsLogD("[$packageName] onResume handle end")
+    }
+
     private fun getTargetProcessPid(packageName: String): ProcessRecord? {
         synchronized(processList.processRecords) {
             for (processRecord in processList.processRecords) {
@@ -326,8 +483,27 @@ class AppStateChangeExecutor(
         return null
     }
 
-    public fun stopPackage(packageName: String) {
+    fun stopPackage(packageName: String) {
         activityManagerService.forceStopPackage(packageName)
+    }
+
+    private fun setWakeLock(packageName: String, userId: Int, status: Int) {
+
+        appOpsService.javaClass
+            .method {
+                name = MethodEnum.setMode
+                param(
+                    IntType, IntType,
+                    StringType, IntType
+                )
+                superClass()
+            }.get(appOpsService)
+            .call(
+                OP_WAKE_LOCK,
+                userId,
+                packageName,
+                status
+            )
     }
 
     /**
@@ -383,6 +559,7 @@ class AppStateChangeExecutor(
      *
      * @param packageName 包名
      */
+    @Deprecated("use new replace")
     private fun onResume(packageName: String, lastBackground: Boolean) {
         atsLogD("[$packageName] onResume handle start")
         backgroundApps.remove(packageName)
@@ -480,6 +657,7 @@ class AppStateChangeExecutor(
      *
      * @param packageName 包名
      */
+    @Deprecated("use new replace")
     private fun onPause(packageName: String, ignoreConfig: Boolean = false) {
         atsLogD("[$packageName] onPause handle start")
 
@@ -599,6 +777,43 @@ class AppStateChangeExecutor(
 //        setAppIdle(packageName, true)
 
         atsLogD("[$packageName] onPause handle end")
+    }
+
+    private fun getTargetProcessRecordsNew(
+        packageName: String
+    ): List<ProcessRecord> {
+        // 从进程列表对象获取所有进程
+        val processRecords: List<ProcessRecord> =
+            processList.processRecords
+        // 存放需要冻结/解冻的 processRecord
+        val targetProcessRecords: MutableList<ProcessRecord> = ArrayList<ProcessRecord>()
+        // 对进程列表加锁
+
+        synchronized(processRecords) {
+            // 遍历进程列表
+            for (processRecord in processRecords) {
+                if (processRecord.userId != ActivityManagerService.MAIN_USER) {
+                    continue
+                }
+                val applicationInfo: ApplicationInfo = processRecord.applicationInfo ?: continue
+                // 如果包名和事件的包名不同就不处理
+                if (applicationInfo.packageName != packageName) {
+                    continue
+                }
+                // 获取进程名
+                val processName: String = processRecord.processName!!
+                // 如果进程名称不是包名开头就跳过 且非app启动
+                if (!processName.startsWith(packageName) && processRecord.applicationInfo
+                        .packageName != packageName
+                ) {
+                    continue
+                }
+
+                // 添加目标进程
+                targetProcessRecords.add(processRecord)
+            }
+        }
+        return targetProcessRecords
     }
 
     /**
