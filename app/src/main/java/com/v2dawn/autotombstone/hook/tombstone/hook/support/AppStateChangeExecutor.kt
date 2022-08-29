@@ -61,6 +61,7 @@ class AppStateChangeExecutor(
 
     companion object {
 
+        val PKG_RELEASE = "pkgrel_"
         var instance: AppStateChangeExecutor? = null
         public val backgroundApps = hashSetOf<String>()
 
@@ -142,7 +143,7 @@ class AppStateChangeExecutor(
             timer?.cancel()
             if (release) {
                 timerMap.remove(packageName)
-                queue.add(packageName)
+                queue.add(PKG_RELEASE + packageName)
                 return true
             }
             timer = Timer()
@@ -161,9 +162,15 @@ class AppStateChangeExecutor(
     override fun run() {
         while (true) {
             try {
-                val pkg = queue.take()
+                var pkg = queue.take()
+
                 extraExecutor.submit {
-                    check(pkg)
+                    if (pkg.startsWith(PKG_RELEASE)) {
+                        check(pkg.removePrefix(PKG_RELEASE), true)
+                    }else {
+                        check(pkg)
+                    }
+
                 }
             } catch (eex: Exception) {
                 atsLogE("task exe error", e = eex)

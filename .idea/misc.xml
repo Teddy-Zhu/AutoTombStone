@@ -3,12 +3,17 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/drawable/ic__freeze.xml" value="0.224" />
+        <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/drawable/ic_freeze.xml" value="0.224" />
+        <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/drawable/ic_lsposed.xml" value="0.224" />
         <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/drawable/ic_right.xml" value="0.1955" />
+        <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/drawable/text_freeze.xml" value="0.223" />
         <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/layout/activity_app_config.xml" value="0.1875" />
         <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/layout/activity_app_config_detail.xml" value="0.1875" />
         <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/layout/activity_main.xml" value="0.31567028985507245" />
         <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/layout/adapter_app_server_app.xml" value="0.1875" />
-        <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/layout/adapter_item_app.xml" value="0.1875" />
+        <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/layout/adapter_item_app.xml" value="0.5" />
+        <entry key="..\:/Users/teddy/Desktop/AutoTombStone/app/src/main/res/layout/dia_app_filter.xml" value="0.2171875" />
         <entry key="app/src/main/res/drawable-night/bg_permotion_round.xml" value="0.208" />
         <entry key="app/src/main/res/drawable/bg_button_round.xml" value="0.208" />
         <entry key="app/src/main/res/drawable/bg_dark_round.xml" value="0.214" />

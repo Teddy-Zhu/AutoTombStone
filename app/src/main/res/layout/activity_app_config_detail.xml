@@ -95,6 +95,15 @@
                 android:layout_marginTop="10dp"
             >
                 <ImageView
+                    android:id="@+id/in_freeze"
+                    android:transitionName="in_freeze"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginEnd="8dp"
+                    android:tooltipText="后台墓碑中"
+                    android:src="@drawable/ic_freeze" />
+
+                <ImageView
                     android:id="@+id/xp_module"
                     android:transitionName="xp_module"
                     android:layout_width="@dimen/app_detail_icon_size"

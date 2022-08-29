@@ -299,6 +299,23 @@ class AppStateChangeHook() : YukiBaseHooker() {
                     val componentName = args(1).cast<ComponentName>()
 
                     if (componentName != null) {
+//                        if ("com.tencent.mm" == componentName.packageName || "com.ss.android.article.news" == componentName.packageName) {
+//                            val callerPid = args(5).int()
+//
+//                            val processRecord =
+//                                appStateChangeExecutor.getTargetProcessByPid(callerPid);
+//                            atsLogI(
+//                                "start $componentName ," +
+//                                        "ps:${processRecord?.processName ?: processRecord?.applicationInfo?.packageName}" +
+//                                        "type:${args(2).int()} " +
+//                                        "intent:${args(3).any()}" +
+//                                        "calluid:${args(4).any()}" +
+//                                        "calpid:${args(5).any()}" +
+//                                        "resolvedType:${args(6).any()}" +
+//                                        "recuid:${args(7).any()}"
+//                            )
+//                        }
+
                         when (args(2).int()) {
                             TYPE_ACTIVITY -> {
 

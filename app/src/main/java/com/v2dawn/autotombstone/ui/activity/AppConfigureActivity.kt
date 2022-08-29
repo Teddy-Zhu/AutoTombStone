@@ -2,6 +2,7 @@ package com.v2dawn.autotombstone.ui.activity
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.IAtsConfigService
 import android.os.IBinder
@@ -16,7 +17,6 @@ import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.hook.factory.classOf
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.StringType
-import com.v2dawn.autotombstone.BuildConfig
 import com.v2dawn.autotombstone.R
 import com.v2dawn.autotombstone.databinding.ActivityAppConfigBinding
 import com.v2dawn.autotombstone.databinding.AdapterItemAppBinding
@@ -26,6 +26,7 @@ import com.v2dawn.autotombstone.hook.tombstone.support.atsLogE
 import com.v2dawn.autotombstone.model.AppItemData
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
 import com.v2dawn.autotombstone.utils.factory.*
+import com.v2dawn.autotombstone.utils.tool.SystemTool
 import com.v2dawn.autotombstone.utils.tool.SystemTool.getApps
 import com.v2dawn.autotombstone.utils.tool.SystemTool.loadApplicationInfos
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -54,6 +55,8 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
     private var appConfigData = ArrayList<AppItemData>()
     var atsConfigService: IAtsConfigService? = null
 
+    private var freezeApps: Set<String> = setOf()
+
     override fun onCreate() {
         /** 检查激活状态 */
         if (YukiHookAPI.Status.isXposedModuleActive.not()) {
@@ -79,6 +82,10 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             snake(msg = "滚动到底部")
             onScrollEvent?.invoke(true)
         }
+
+        binding.configTitleSync.setOnClickListener {
+            refreshFreezeStatus()
+        }
         /** 设置过滤按钮点击事件 */
         binding.configTitleFilter.setOnClickListener {
             showDialog<DiaAppFilterBinding> {
@@ -95,32 +102,20 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                         setText(filterText)
                         setSelection(filterText.length)
                     }
-                    showKeyboard()
+                    showKeyboard(this)
                 }
                 confirmButton {
                     filterText = binding.iconFiltersEdit.text.toString().trim()
                     refreshAdapterResult()
                 }
-                cancelButton()
+                cancelButton {
+                    hideKeyBoard(binding.iconFiltersEdit)
+                }
                 if (filterText.isNotBlank())
                     neutralButton(text = "清除条件") {
                         filterText = ""
                         refreshAdapterResult()
                     }
-            }
-        }
-
-        /** 设置同步列表按钮点击事件 */
-        binding.configTitleSync.isVisible = BuildConfig.DEBUG
-
-        if (BuildConfig.DEBUG) {
-            binding.configTitleSync.setOnClickListener {
-                showDialog {
-                    title = "后台运行Apps"
-                    msg = getAtsService().queryBackgroundApps().joinToString()
-                    confirmButton(text = "我知道了") { cancel() }
-                    noCancelable()
-                }
             }
         }
 
@@ -135,13 +130,16 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                         binding.appWhiteSwitch.isEnabled = !bean.isImportantSystemApp
                         binding.adpAppIcon.setImageDrawable(bean.icon)
                         binding.adpAppName.text = bean.name
+                        binding.adpAppName.setTextColor(if (bean.inFreeze) getColor(R.color.red) else getColor(R.color.colorTextDark))
                         binding.adpAppPkgName.text = bean.packageName
                         binding.sysImpApp.tag = bean.name
                         binding.sysApp.tag = bean.name
                         binding.xpModule.tag = bean.name
+                        binding.inFreeze.tag = bean.name
                         binding.sysImpApp.isVisible = bean.isImportantSystemApp
                         binding.sysApp.isVisible = bean.isSystem
                         binding.xpModule.isVisible = bean.isXposedModule
+                        binding.inFreeze.isVisible = bean.inFreeze
                         binding.appWhiteSwitch.setOnCheckedChangeListener { _, b ->
 //                            binding.appWhiteSwitch.isEnabled = b
                             //TODO notify adapter change enable
@@ -166,6 +164,9 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                         binding.sysApp.setOnClickListener(onClickAction)
                         binding.sysImpApp.setOnClickListener(onClickAction)
                         binding.xpModule.setOnClickListener(onClickAction)
+                        binding.inFreeze.setOnClickListener {
+                            toast("${bean.name} 在 ${it.tooltipText}")
+                        }
                         binding.appContent.setOnLongClickListener {
                             showOperatePopup(it) { index, resId ->
                                 if (!YukiHookAPI.Status.isModuleActive) {
@@ -226,6 +227,9 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                                 if (bean.isXposedModule) {
                                     add(Pair(binding.xpModule, "xp_module"))
                                 }
+                                if (bean.inFreeze) {
+                                    add(Pair(binding.inFreeze, "in_freeze"))
+                                }
                             }
 
                             this@AppConfigureActivity.navigateWithTransition<AppConfigureDetailActivity>(
@@ -254,6 +258,12 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             }
             onScrollEvent = { post { setSelection(if (it) appFilteredData.lastIndex else 0) } }
         }
+
+        runInSafe {
+            freezeApps = hashSetOf<String>().apply {
+                addAll(getAtsService().queryBackgroundApps())
+            }
+        }
         /** 装载数据 */
         mockLocalData(true)
 
@@ -272,10 +282,29 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
 //        })
     }
 
-    fun showKeyboard() {
+    private fun refreshFreezeStatus() =
+        runInSafe {
+            freezeApps = hashSetOf<String>().apply {
+                addAll(getAtsService().queryBackgroundApps())
+            }
+
+            updateAppsFreezeStatus()
+        }
+
+
+    fun showKeyboard(view: View) {
         val inputMethodManager: InputMethodManager =
             this.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+        inputMethodManager.showSoftInput(view, InputMethodManager.SHOW_FORCED)
+    }
+
+    fun hideKeyBoard(view: View) {
+        val inputMethodManager =
+            this.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.hideSoftInputFromWindow(
+            view.windowToken,
+            InputMethodManager.HIDE_NOT_ALWAYS
+        )
     }
 
     val onClickAction: View.OnClickListener = View.OnClickListener {
@@ -290,11 +319,11 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             appFilteredData[position].applicationInfo,
             getBlackApps(),
             getWhiteApps(),
-            appFilteredData[position]
+            appFilteredData[position],
+            freezeApps
         )
         (binding.configListView.adapter as BaseAdapter).notifyDataSetChanged()
     }
-
 
     fun getAtsService(): IAtsConfigService {
         if (atsConfigService == null) {
@@ -345,6 +374,18 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         refreshAppList(force)
     }
 
+
+    private fun updateAppsFreezeStatus() {
+        appConfigData.forEach {
+            val newFreeze = freezeApps.contains(it.packageName)
+            if (it.inFreeze != newFreeze) {
+                it.inFreeze = newFreeze
+                it.updatePriority()
+            }
+        }
+        appConfigData.sortBy { it.priority }
+    }
+
     private fun refreshAppList(force: Boolean) {
 
         Observable.create { emitter: ObservableEmitter<List<AppItemData>> ->
@@ -386,7 +427,8 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
     ): List<AppItemData> {
         val cache: MutableList<AppItemData> = ArrayList<AppItemData>()
         for (appInfo in getApps()!!) {
-            val viewData = buildAppItemData(packageManager, appInfo, sysBlackApps, whiteApps)
+            val viewData =
+                buildAppItemData(packageManager, appInfo, sysBlackApps, whiteApps, null, freezeApps)
             cache.add(viewData)
         }
         cache.sortBy { it.priority }
@@ -428,7 +470,6 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             (!it.isSystem || (showSystem && it.isSystem)) && (it.name.lowercase()
                 .contains(filterText.lowercase()) || it.packageName.lowercase()
                 .contains(filterText.lowercase()))
-
         }
 
     override fun onBackPressed() {

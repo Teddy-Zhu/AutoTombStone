@@ -49,6 +49,16 @@
                 android:textSize="19sp" />
 
             <ImageView
+                android:id="@+id/in_freeze"
+                android:transitionName="in_freeze"
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:layout_marginEnd="8dp"
+                android:tooltipText="后台墓碑中"
+                android:src="@drawable/ic_freeze" />
+
+
+            <ImageView
                 android:id="@+id/xp_module"
                 android:transitionName="xp_module"
                 android:layout_width="15dp"
@@ -56,6 +66,7 @@
                 android:layout_marginEnd="8dp"
                 android:tooltipText="Xposed 模块"
                 android:src="@drawable/ic_lsposed" />
+
             <ImageView
                 android:id="@+id/sys_app"
                 android:transitionName="sys_app"

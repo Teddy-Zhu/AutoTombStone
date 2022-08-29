@@ -69,11 +69,19 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         binding.restartBtn.setOnClickListener {
             restartSystem()
         }
-        Log.i(
-            TAG,
-            "check debug ${modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_MODULE_LOG)}"
-        )
 
+        binding.appDebugBackground.isVisible = BuildConfig.DEBUG
+
+        if (BuildConfig.DEBUG) {
+            binding.appDebugBackground.setOnClickListener {
+                showDialog {
+                    title = "后台运行Apps"
+                    msg = getAtsService().queryBackgroundApps().joinToString(separator="\n")
+                    confirmButton(text = "我知道了") { cancel() }
+                    noCancelable()
+                }
+            }
+        }
         binding.enableDebug.isChecked =
             modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_MODULE_LOG)
         binding.enableDebug.setOnCheckedChangeListener { _, checked ->

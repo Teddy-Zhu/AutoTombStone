@@ -22,10 +22,7 @@ class ANRHook : YukiBaseHooker() {
         }
 
         if (AppStateChangeExecutor.backgroundApps.contains(application.packageName)) {
-            atsLogD("[${processName}|${application.packageName}] keep no anr ,start refreeze app")
-
-            AppStateChangeExecutor.instance?.unControlAppWait(application.packageName)
-            AppStateChangeExecutor.instance?.controlApp(application.packageName)
+            atsLogD("[${processName}|${application.packageName}] keep no anr")
             return true
         }
         atsLogI("[${application.packageName}] allow anr reason:not freeze app")

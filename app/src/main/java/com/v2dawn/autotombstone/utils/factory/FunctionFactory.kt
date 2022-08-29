@@ -21,9 +21,7 @@ import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
+import android.os.*
 import android.provider.Settings
 import android.util.Base64
 import android.view.View
@@ -32,6 +30,7 @@ import androidx.core.app.ActivityOptionsCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
 import androidx.core.util.Pair
+import com.android.server.AtsConfigService
 import com.google.android.material.snackbar.Snackbar
 import com.highcapable.yukihookapi.hook.factory.*
 import com.highcapable.yukihookapi.hook.type.java.StringType
@@ -39,6 +38,8 @@ import com.highcapable.yukihookapi.hook.xposed.application.ModuleApplication.Com
 import com.highcapable.yukihookapi.hook.xposed.prefs.YukiHookModulePrefs
 import com.topjohnwu.superuser.Shell
 import com.v2dawn.autotombstone.config.ConfigConst
+import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogE
 import com.v2dawn.autotombstone.model.AppItemData
 import com.v2dawn.autotombstone.utils.tool.SystemTool
 import java.io.ByteArrayOutputStream
@@ -446,67 +447,6 @@ fun Context.setKillProcesses(killProcesses: Set<String>) {
         .put(ConfigConst.KILL_APP_PROCESS, killProcesses)
 }
 
-
-fun buildAppItemData(
-    pm: PackageManager,
-    appInfo: ApplicationInfo,
-    sysBlackApps: Set<String>,
-    whiteApps: Set<String>,
-    appItemData: AppItemData? = null
-): AppItemData {
-    val label: String = pm.originLabel(appInfo)
-    val pkgName: String = appInfo.packageName
-    val isSystem: Boolean = SystemTool.isSystem(appInfo)
-    val isImportSystem: Boolean = SystemTool.isImportantSystemApp(appInfo)
-    val isBlackApp: Boolean = sysBlackApps.contains(pkgName)
-    val isWhiteApp: Boolean = whiteApps.contains(pkgName)
-    var priority = 20
-    if (isSystem) {
-        if (isImportSystem) {
-            priority += 5
-        }
-        if (isBlackApp) {
-            priority -= 2
-        } else {
-            priority += 5
-        }
-
-    } else {
-        if (isWhiteApp) {
-            priority -= 5
-        }
-    }
-
-    if (appItemData == null) {
-        return AppItemData(
-            name = label,
-            label = label,
-            applicationInfo = appInfo,
-            isSystem = isSystem,
-            isImportantSystemApp = isImportSystem,
-            isXposedModule = SystemTool.isXposedModule(appInfo),
-            icon = appInfo.loadIcon(pm),
-            packageName = pkgName,
-            enable = if (isSystem && !isBlackApp) true else isWhiteApp,
-            priority = priority,
-        )
-    } else {
-        appItemData.name = label
-        appItemData.label = label
-        appItemData.applicationInfo = appInfo
-        appItemData.isSystem = isSystem
-        appItemData.isImportantSystemApp = isImportSystem
-        appItemData.isXposedModule = SystemTool.isXposedModule(appInfo)
-        appItemData.icon = appInfo.loadIcon(pm)
-        appItemData.packageName = pkgName
-        appItemData.enable = if (isSystem && !isBlackApp) true else isWhiteApp
-        appItemData.priority = priority
-        return appItemData
-    }
-
-
-}
-
 inline fun <reified T : Activity> Activity.navigateWithTransition(
     position: Int,
     appItemData: AppItemData,
@@ -609,6 +549,25 @@ fun Context.copyToClipboard(content: String) = runInSafe {
     }
 }
 
+
+fun Context.getAtsService(): IAtsConfigService? {
+    try {
+        val binder: IBinder = classOf(
+            ClassEnum.ServiceManagerClass,
+            Thread.currentThread().contextClassLoader
+        )
+            .method {
+                name = "getService"
+                param(StringType)
+            }.get().invoke<IBinder>(AtsConfigService.serviceName)!!
+
+        return IAtsConfigService.Stub.asInterface(binder)
+    } catch (e: Exception) {
+        atsLogE("ats config service get error", e = e)
+    }
+    return null
+}
+
 /**
  * 时间戳 -> 时间
  * @param format 格式化方法 - 默认：yyyy-MM-dd HH:mm:ss
@@ -624,3 +583,53 @@ fun Long.stampToDate(format: String = "yyyy-MM-dd HH:mm:ss") =
  */
 fun Any?.delayedRun(ms: Long = 150, it: () -> Unit) =
     runInSafe { Handler().postDelayed({ it() }, ms) }
+
+
+fun buildAppItemData(
+    pm: PackageManager,
+    appInfo: ApplicationInfo,
+    sysBlackApps: Set<String>,
+    whiteApps: Set<String>,
+    appItemData: AppItemData? = null,
+    freezeApps: Set<String>
+): AppItemData {
+    val label: String = pm.originLabel(appInfo)
+    val pkgName: String = appInfo.packageName
+    val isSystem: Boolean = SystemTool.isSystem(appInfo)
+    val isImportSystem: Boolean = SystemTool.isImportantSystemApp(appInfo)
+    val isBlackApp: Boolean = sysBlackApps.contains(pkgName)
+    val isWhiteApp: Boolean = whiteApps.contains(pkgName)
+    val isFreeze: Boolean = freezeApps.contains(pkgName)
+
+    if (appItemData == null) {
+        val newAppData = AppItemData(
+            name = label,
+            label = label,
+            applicationInfo = appInfo,
+            isSystem = isSystem,
+            isImportantSystemApp = isImportSystem,
+            isXposedModule = SystemTool.isXposedModule(appInfo),
+            icon = appInfo.loadIcon(pm),
+            packageName = pkgName,
+            inFreeze = isFreeze,
+            isBlackApp = isBlackApp,
+            isWhiteApp = isWhiteApp
+        )
+        newAppData.updatePriority()
+        return newAppData;
+    } else {
+        appItemData.name = label
+        appItemData.label = label
+        appItemData.applicationInfo = appInfo
+        appItemData.isSystem = isSystem
+        appItemData.isImportantSystemApp = isImportSystem
+        appItemData.isXposedModule = SystemTool.isXposedModule(appInfo)
+        appItemData.icon = appInfo.loadIcon(pm)
+        appItemData.packageName = pkgName
+        appItemData.isBlackApp = isBlackApp
+        appItemData.isWhiteApp = isWhiteApp
+        appItemData.updatePriority()
+
+        return appItemData
+    }
+}

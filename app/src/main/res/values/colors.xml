@@ -7,4 +7,10 @@
 
     <color name="lsposed_launcher_foreground">#003549</color>
 
+    <color name="colorThemeBackground">#FFFFFFFF</color>
+    <color name="colorTextDark">#FF777777</color>
+    <color name="colorTextGray">#FF323B42</color>
+    <color name="colorSwitchSelectd">#0c84ff</color>
+
+    <color name="red">#FF0000</color>
 </resources>

@@ -41,6 +41,11 @@ class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>(
             onBackPressed()
             return
         }
+        val freeApps = hashSetOf<String>()
+
+        getAtsService()?.queryBackgroundApps()?.forEach {
+            freeApps.add(it)
+        }
 
         appItemData = buildAppItemData(
             packageManager,
@@ -49,7 +54,9 @@ class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>(
                 PackageManager.GET_META_DATA
             ),
             getBlackApps(),
-            getWhiteApps()
+            getWhiteApps(),
+            null,
+            freeApps
         )
 
         binding.titleBackIcon.setOnClickListener { onBackPressed() }
@@ -57,15 +64,14 @@ class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>(
         binding.adpAppIcon.setImageDrawable(appItemData.icon)
 
         binding.adpAppName.text = appItemData.name
+        binding.adpAppName.setTextColor(if (appItemData.inFreeze) getColor(R.color.red) else getColor(R.color.colorTextDark))
         binding.adpAppPkgName.text = appItemData.packageName
         binding.appWhiteSwitch.setOnCheckedChangeListener(null)
         binding.appWhiteSwitch.isChecked = appItemData.enable
         binding.sysImpApp.isVisible = appItemData.isImportantSystemApp
         binding.sysApp.isVisible = appItemData.isSystem
         binding.xpModule.isVisible = appItemData.isXposedModule
-        binding.sysImpApp.tag = appItemData.name
-        binding.sysApp.tag = appItemData.name
-        binding.xpModule.tag = appItemData.name
+        binding.inFreeze.isVisible = appItemData.inFreeze
 
         binding.appWhiteSwitch.setOnCheckedChangeListener { _, isChecked ->
             if (appItemData.isImportantSystemApp) {
@@ -86,12 +92,16 @@ class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>(
         }
         binding.iconContent.isVisible =
             appItemData.isImportantSystemApp || appItemData.isSystem || appItemData.isXposedModule
+                    || appItemData.inFreeze
         binding.appWhiteSwitch.isEnabled = !appItemData.isImportantSystemApp
 
 
         binding.sysApp.setOnClickListener(onClickAction)
         binding.sysImpApp.setOnClickListener(onClickAction)
         binding.xpModule.setOnClickListener(onClickAction)
+        binding.inFreeze.setOnClickListener{
+            toast("${appItemData.name} 在 ${it.tooltipText}")
+        }
 
 
         val services = HashSet<String>()
@@ -210,7 +220,7 @@ class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>(
     }
 
     private val onClickAction: View.OnClickListener = View.OnClickListener {
-        toast("${it.tag} 是 ${it.tooltipText}")
+        toast("${appItemData.name} 是 ${it.tooltipText}")
     }
 
     override fun onCreate() {

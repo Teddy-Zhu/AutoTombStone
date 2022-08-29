@@ -12,18 +12,47 @@ data class AppItemData(
     var packageName: String,
     var icon: Drawable,
 
-    var enable: Boolean,
+    var inFreeze: Boolean = false,
+
     var priority: Int = Integer.valueOf("20"),
     var isXposedModule: Boolean,
     var isSystem: Boolean,
     var isImportantSystemApp: Boolean,
+    var isBlackApp: Boolean,
+    var isWhiteApp: Boolean,
     var applicationInfo: ApplicationInfo,
     var processes: HashSet<String> = HashSet(),
-
     var packageInfo: PackageInfo? = null,
 
     ) : Serializable {
+
+    val enable: Boolean
+        get() = if (isSystem && !isBlackApp) true else isWhiteApp
+
+    fun updatePriority() {
+        var newPriority = 20
+        if (isSystem) {
+            if (isImportantSystemApp) {
+                newPriority += 5
+            }
+            if (isBlackApp) {
+                newPriority -= 2
+            } else {
+                newPriority += 5
+            }
+
+        } else {
+            if (isWhiteApp) {
+                newPriority -= 5
+            }
+        }
+        if (inFreeze) {
+            newPriority -= 4
+        }
+        priority = newPriority
+    }
+
     override fun toString(): String {
-        return "AppItemData(name='$name', label='$label', packageName='$packageName', icon=$icon, enable=$enable, priority=$priority, isXposedModule=$isXposedModule, isSystem=$isSystem, isImportantSystemApp=$isImportantSystemApp, applicationInfo=$applicationInfo, processes=$processes)"
+        return "AppItemData(name='$name', label='$label', packageName='$packageName', icon=$icon, inFreeze=$inFreeze, enable=$enable, priority=$priority, isXposedModule=$isXposedModule, isSystem=$isSystem, isImportantSystemApp=$isImportantSystemApp, processes=$processes)"
     }
 }
