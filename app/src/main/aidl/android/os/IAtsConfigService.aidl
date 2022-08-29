@@ -21,4 +21,6 @@ interface IAtsConfigService {
     boolean forceStop(String packageName);
 
     boolean restartSystem();
+
+    List<String> queryBackgroundApps();
 }

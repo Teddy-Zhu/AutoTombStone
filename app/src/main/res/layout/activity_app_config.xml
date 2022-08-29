@@ -84,14 +84,14 @@
             android:tint="@color/colorTextGray"
             android:tooltipText="按条件过滤" />
 
-<!--        <androidx.constraintlayout.utils.widget.ImageFilterView-->
-<!--            android:id="@+id/config_title_sync"-->
-<!--            android:layout_width="23dp"-->
-<!--            android:layout_height="23dp"-->
-<!--            android:layout_marginEnd="10dp"-->
-<!--            android:src="@mipmap/ic_sync"-->
-<!--            android:tint="@color/colorTextGray"-->
-<!--            android:tooltipText="同步列表" />-->
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/config_title_sync"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="10dp"
+            android:src="@mipmap/ic_sync"
+            android:tint="@color/colorTextGray"
+            android:tooltipText="同步列表" />
     </LinearLayout>
 
     <LinearLayout

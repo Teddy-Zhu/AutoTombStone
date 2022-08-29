@@ -14,13 +14,18 @@ import kotlin.collections.ArrayList
 
 class ProcessList(private val processList: Any) {
     public val processRecords = Collections.synchronizedList(ArrayList<ProcessRecord>())
+
+    val processes: List<Any> = processList.javaClass.field {
+        name = FieldEnum.mLruProcessesField
+    }.get(processList).list<Any>()
+
     public fun reloadProcessRecord() {
         try {
             processRecords.clear()
-            val processRecordList = processList.javaClass.field {
-                name = FieldEnum.mLruProcessesField
-            }.get(processList).list<Any>()
-            val cpy = ArrayList<Any>(processRecordList)
+            val cpy: ArrayList<Any>
+            synchronized(processes) {
+                cpy = ArrayList<Any>(processes)
+            }
             for (proc in cpy) {
                 processRecords.add(ProcessRecord(proc))
             }
@@ -43,6 +48,5 @@ class ProcessList(private val processList: Any) {
 
 
     init {
-        reloadProcessRecord()
     }
 }

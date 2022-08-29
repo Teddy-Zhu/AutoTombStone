@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.IAtsConfigService
 import android.os.PowerManager
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
+import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
 import java.util.*
 
@@ -14,6 +15,10 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
 
     companion object {
         public val serviceName = "tv_tuner_resource_mgr" //Context.TV_TUNER_RESOURCE_MGR_SERVICE
+    }
+
+    private fun ensureApp() {
+        atsLogD("operate context:${context.packageName}")
     }
 
     override fun configChange(name: String?, key: String?) {
@@ -74,7 +79,7 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
 
     override fun makeIdle(packageName: String?, idle: Boolean): Boolean {
         if (packageName == null) return false
-        appStateChangeExecutor.makeAppIdle(packageName,idle)
+        appStateChangeExecutor.makeAppIdle(packageName, idle)
         return true
     }
 
@@ -87,6 +92,12 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
     override fun restartSystem(): Boolean {
         appStateChangeExecutor.restartSystem()
         return true
+    }
+
+    override fun queryBackgroundApps(): MutableList<String> {
+        return arrayListOf<String>().apply {
+            addAll(AppStateChangeExecutor.backgroundApps)
+        }
     }
 
 }

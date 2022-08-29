@@ -36,6 +36,9 @@ class AppStateChangeHook() : YukiBaseHooker() {
 //    val ACTIVITY_DESTROYED = 24
 
     companion object {
+        var TYPE_ACTIVITY = 0
+        var TYPE_BROADCAST = 1
+        var TYPE_SERVICE = 2
         var serviceRegistered = false
     }
 
@@ -109,6 +112,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
                     hookOther(appStateChangeExecutor)
                     hookProcessKill(appStateChangeExecutor)
                     hookTileClick(appStateChangeExecutor)
+                    hookStartIntent(appStateChangeExecutor)
                 }
             }
         }
@@ -267,6 +271,98 @@ class AppStateChangeHook() : YukiBaseHooker() {
             }
         }
         atsLogI("hooked audio focus")
+    }
+
+    private fun hookStartIntent(appStateChangeExecutor: AppStateChangeExecutor) {
+        TYPE_ACTIVITY = ClassEnum.IntentFirewallClass.clazz.field {
+            name = "TYPE_ACTIVITY"
+        }.get().int()
+        TYPE_BROADCAST = ClassEnum.IntentFirewallClass.clazz.field {
+            name = "TYPE_BROADCAST"
+        }.get().int()
+        TYPE_SERVICE = ClassEnum.IntentFirewallClass.clazz.field {
+            name = "TYPE_SERVICE"
+        }.get().int()
+
+        ClassEnum.IntentFirewallClass.hook {
+            injectMember {
+                method {
+                    name = "checkIntent"
+                    param(
+                        "${ClassEnum.IntentFirewallClass}\$FirewallIntentResolver",
+                        ComponentNameClass,
+                        IntType,
+                        IntentClass, IntType, IntType, StringType, IntType
+                    )
+                }
+                beforeHook {
+                    val componentName = args(1).cast<ComponentName>()
+
+                    if (componentName != null) {
+                        when (args(2).int()) {
+                            TYPE_ACTIVITY -> {
+                                if ("com.eg.android.AlipayGphone" == componentName.packageName) {
+                                    val callerPid = args(5).int()
+
+                                    val processRecord =
+                                        appStateChangeExecutor.getTargetProcessByPid(callerPid);
+
+                                    atsLogD("IntentFirewall activity ${args(1).cast<Any>()} caller:${processRecord?.processName}")
+                                }
+                            }
+                            TYPE_BROADCAST -> {
+                                val callerPid = args(5).int()
+
+                                val processRecord =
+                                    appStateChangeExecutor.getTargetProcessByPid(callerPid);
+
+//                            atsLogI("IntentFirewall broadcast ${args(1).cast<Any>()}")
+//                                if ("com.eg.android.AlipayGphone" == componentName.packageName) {
+
+                                atsLogD("[${componentName.packageName}] broadcast ${componentName.className} caller:${processRecord?.processName}")
+//                                }
+                                if (AppStateChangeExecutor.backgroundApps.contains(componentName.packageName)) {
+
+//                                    val callerPid = args(5).int()
+//
+//                                    val processRecord =
+//                                        appStateChangeExecutor.getTargetProcessByPid(callerPid);
+                                    atsLogD("[${componentName.packageName}] block broadcast ${componentName.className} caller:${processRecord?.processName}")
+
+                                    resultFalse()
+                                }
+                            }
+                            TYPE_SERVICE -> {
+                                val callerPid = args(5).int()
+
+                                val processRecord =
+                                    appStateChangeExecutor.getTargetProcessByPid(callerPid);
+
+                                if ("com.eg.android.AlipayGphone" == componentName.packageName) {
+
+                                    atsLogD("[${componentName.packageName}] monitor service ${componentName.className} caller:${processRecord?.processName}")
+
+//                                    appStateChangeExecutor.controlApp(processRecord?.processName)
+                                }
+
+                                if (AppStateChangeExecutor.backgroundApps.contains(componentName.packageName)) {
+//                                    val callerPid = args(5).int()
+//
+//                                    val processRecord =
+//                                        appStateChangeExecutor.getTargetProcessByPid(callerPid);
+                                    atsLogD("[${componentName.packageName}] block start service ${componentName.className} caller:${processRecord?.processName}")
+                                    resultFalse()
+                                }
+//                                atsLogI("IntentFirewall service ${args(1).cast<Any>()}")
+                            }
+                        }
+                    }
+                }
+            }
+        }.onHookClassNotFoundFailure {
+            atsLogI("checkIntent class not found $packageName")
+        }
+        atsLogI("hooked intent firewall")
     }
 
     private fun hookProcessKill(appStateChangeExecutor: AppStateChangeExecutor) {

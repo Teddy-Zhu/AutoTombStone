@@ -21,6 +21,13 @@ class CacheFreezerHook : YukiBaseHooker() {
                     }
                     replaceToFalse()
                 }
+                injectMember {
+                    method {
+                        name="isFreezerSupported"
+                        emptyParam()
+                    }
+                    replaceToTrue()
+                }
             }
             atsLogI("Disable cache freezer")
         }

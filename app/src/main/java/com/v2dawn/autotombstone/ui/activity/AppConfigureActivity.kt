@@ -16,6 +16,7 @@ import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.hook.factory.classOf
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.StringType
+import com.v2dawn.autotombstone.BuildConfig
 import com.v2dawn.autotombstone.R
 import com.v2dawn.autotombstone.databinding.ActivityAppConfigBinding
 import com.v2dawn.autotombstone.databinding.AdapterItemAppBinding
@@ -35,9 +36,6 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 
 class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
     companion object {
-        fun build() {
-            TODO("Not yet implemented")
-        }
 
         const val TAG = "AppConfigureActivity"
     }
@@ -113,9 +111,19 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         }
 
         /** 设置同步列表按钮点击事件 */
-//        binding.configTitleSync.setOnClickListener {
-//            onStartRefresh(true)
-//        }
+        binding.configTitleSync.isVisible = BuildConfig.DEBUG
+
+        if (BuildConfig.DEBUG) {
+            binding.configTitleSync.setOnClickListener {
+                showDialog {
+                    title = "后台运行Apps"
+                    msg = getAtsService().queryBackgroundApps().joinToString()
+                    confirmButton(text = "我知道了") { cancel() }
+                    noCancelable()
+                }
+            }
+        }
+
         /** 设置列表元素和 Adapter */
         binding.configListView.apply {
             bindAdapter {
@@ -269,6 +277,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             this.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
     }
+
     val onClickAction: View.OnClickListener = View.OnClickListener {
         toast("${it.tag} 是 ${it.tooltipText}")
     }

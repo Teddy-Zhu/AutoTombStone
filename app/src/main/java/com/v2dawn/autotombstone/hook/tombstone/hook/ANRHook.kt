@@ -1,22 +1,15 @@
 package com.v2dawn.autotombstone.hook.tombstone.hook;
 
-import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.os.Build
+import android.util.Log
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.field
-import com.highcapable.yukihookapi.hook.log.loggerD
-import com.highcapable.yukihookapi.hook.log.loggerI
-import com.highcapable.yukihookapi.hook.param.HookParam
 import com.highcapable.yukihookapi.hook.type.android.ApplicationInfoClass
 import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
-import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
-import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
 import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
-import com.v2dawn.autotombstone.hook.tombstone.server.WindowProcessController
 import com.v2dawn.autotombstone.hook.tombstone.support.*
-import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAppList
 
 class ANRHook : YukiBaseHooker() {
     private fun needHookApplicationNew(
@@ -31,7 +24,8 @@ class ANRHook : YukiBaseHooker() {
         if (AppStateChangeExecutor.backgroundApps.contains(application.packageName)) {
             atsLogD("[${processName}|${application.packageName}] keep no anr ,start refreeze app")
 
-            AppStateChangeExecutor.instance?.controlApp(packageName)
+            AppStateChangeExecutor.instance?.unControlAppWait(application.packageName)
+            AppStateChangeExecutor.instance?.controlApp(application.packageName)
             return true
         }
         atsLogI("[${application.packageName}] allow anr reason:not freeze app")
@@ -95,6 +89,24 @@ class ANRHook : YukiBaseHooker() {
                     }
 
                 }
+                injectMember {
+                    method {
+                        name = "appNotResponding"
+                        param(ClassEnum.ProcessRecordClass, StringType)
+                    }
+                    beforeHook {
+                        val arg0 = args(0).cast<Any>()
+
+                        if (resolveAnr(
+                                arg0,
+                                null,
+                                "AnrHelperClass$1"
+                            )
+                        ) {
+                            resultNull()
+                        }
+                    }
+                }
             }
 
             ClassEnum.AnrRecordClass.hook {
@@ -118,6 +130,8 @@ class ANRHook : YukiBaseHooker() {
                                 "AnrRecordClass"
                             )
                         ) {
+                            printStackTrace(Throwable())
+
                             resultNull()
                         }
                     }
@@ -143,7 +157,12 @@ class ANRHook : YukiBaseHooker() {
                         }.get(instance).any()
                         var applicationInfo = args(1).cast<ApplicationInfo>()
 
-                        if (resolveAnr(processRecordRaw,  applicationInfo,"ProcessErrorStateRecordClass")) {
+                        if (resolveAnr(
+                                processRecordRaw,
+                                applicationInfo,
+                                "ProcessErrorStateRecordClass"
+                            )
+                        ) {
                             resultNull()
                         }
                     }
@@ -189,4 +208,12 @@ class ANRHook : YukiBaseHooker() {
 
     }
 
+    fun printStackTrace(th: Throwable) {
+        var stackTrace: Array<StackTraceElement?>
+        atsLogD("---------------> ")
+        for (stackTraceElement in th.stackTrace) {
+            atsLogD("at " + stackTraceElement.className + "." + stackTraceElement.methodName + "(" + stackTraceElement.fileName + ":" + stackTraceElement.lineNumber + ")")
+        }
+        atsLogD(" <---------------")
+    }
 }

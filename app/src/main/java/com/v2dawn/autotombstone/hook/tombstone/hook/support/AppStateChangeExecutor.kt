@@ -28,9 +28,7 @@ import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhitePr
 import java.io.File
 import java.io.IOException
 import java.util.*
-import java.util.concurrent.ArrayBlockingQueue
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.Executors
+import java.util.concurrent.*
 
 
 @SuppressLint("ServiceCast")
@@ -40,7 +38,6 @@ class AppStateChangeExecutor(
 ) : Runnable {
 
     val queue: BlockingQueue<String> = ArrayBlockingQueue(20)
-    val taskQueue: BlockingQueue<String> = ArrayBlockingQueue(5)
 
     val timerMap = Collections.synchronizedMap(HashMap<String, Timer?>())
     private val freezeUtils: FreezeUtils
@@ -60,9 +57,7 @@ class AppStateChangeExecutor(
     private var useOriginMethod = true
     private val acService: Any
 
-    private val eventExecutor = Executors.newSingleThreadExecutor()
-
-    private val operateExecutor = Executors.newSingleThreadExecutor()
+    private val extraExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(4)
 
     companion object {
 
@@ -72,7 +67,8 @@ class AppStateChangeExecutor(
         val hasOverlayUiPackages = hashSetOf<String>()
         val hasAudioFocusPackages = hashSetOf<String>()
 
-        const val DELAY_TIME: Long = 10000
+        const val DELAY_TIME: Long = 3000
+        const val FREEZE_DELAY_TIME: Long = 3000
         private val SYS_SUPPORTS_SCHEDGROUPS = File("/dev/cpuctl/tasks").exists()
         private var OP_WAKE_LOCK = 40
         private var STANDBY_BUCKET_NEVER = 50
@@ -166,7 +162,9 @@ class AppStateChangeExecutor(
         while (true) {
             try {
                 val pkg = queue.take()
-                check(pkg)
+                extraExecutor.submit {
+                    check(pkg)
+                }
             } catch (eex: Exception) {
                 atsLogE("task exe error", e = eex)
             }
@@ -178,7 +176,7 @@ class AppStateChangeExecutor(
     }
 
     private fun check(packageName: String, release: Boolean = false) {
-        if ("android" == packageName) {
+        if ("android" == packageName || "system" == packageName) {
             return
         }
         var isForeground: Boolean?
@@ -234,7 +232,8 @@ class AppStateChangeExecutor(
                 return
             }
         }
-
+        val threadCount = (extraExecutor as ThreadPoolExecutor).activeCount
+        atsLogD("current active threads num:$threadCount")
         if (isForeground) {
             //继续事件
             onResumeNew(packageName, true, false, runInFreeze)
@@ -251,21 +250,28 @@ class AppStateChangeExecutor(
 
     public fun controlApp(packageName: String) {
         atsLogD("[$packageName] user operate onPause")
-        operateExecutor.submit {
+        runInSysThread {
             onPauseNew(packageName, false, false)
+        }
+    }
+
+    public fun unControlAppWait(packageName: String) {
+        atsLogD("[$packageName] user operate onResume")
+        runInSysThreadWait {
+            onResumeNew(packageName, false, false, true)
         }
     }
 
     public fun unControlApp(packageName: String) {
         atsLogD("[$packageName] user operate onResume")
-        operateExecutor.submit {
+        runInSysThread {
             onResumeNew(packageName, false, false, true)
         }
     }
 
     public fun freezeApp(packageName: String) {
         atsLogD("[$packageName] user operate freeze")
-        operateExecutor.submit {
+        runInSysThread {
             onPauseNew(
                 packageName, false, false,
                 false, true, false, false, false
@@ -275,7 +281,7 @@ class AppStateChangeExecutor(
 
     public fun unFreezeApp(packageName: String) {
         atsLogD("[$packageName] user operate unfreeze")
-        operateExecutor.submit {
+        runInSysThread {
             onResumeNew(
                 packageName, false, false,
                 false, true, false
@@ -286,7 +292,7 @@ class AppStateChangeExecutor(
     public fun stopServices(packageName: String) {
         atsLogD("[$packageName] user operate stopServices")
 
-        operateExecutor.submit {
+        runInSysThread {
             onPauseNew(
                 packageName, false, false,
                 false, false, true, false, false
@@ -297,7 +303,7 @@ class AppStateChangeExecutor(
     public fun makeAppIdle(packageName: String, idle: Boolean) {
         atsLogD("[$packageName] user operate setAppIdle")
 
-        operateExecutor.submit {
+        runInSysThread {
             setAppIdle(packageName, idle)
             if (idle) {
                 makePackageIdle(packageName)
@@ -307,13 +313,14 @@ class AppStateChangeExecutor(
 
     public fun forceStopApp(packageName: String) {
         atsLogD("[$packageName] user operate stopPackage")
-        operateExecutor.submit {
+
+        runInSysThread {
             stopPackage(packageName)
         }
     }
 
     public fun restartSystem() {
-        operateExecutor.submit {
+        runInSysThread {
             restart()
         }
     }
@@ -372,8 +379,10 @@ class AppStateChangeExecutor(
 
         if (makeIdle && !isWhiteApp) {
             makePackageIdle(packageName)
+            setAppIdle(packageName, true)
         }
 
+        val delayFreezerProcesses = hashSetOf<ProcessRecord>()
         // 遍历目标进程
         for (targetProcessRecord in targetProcessRecords) {
             // 应用又进入前台了
@@ -430,8 +439,9 @@ class AppStateChangeExecutor(
             } else {
                 if (freeze) {
                     atsLogD("[$processName] freezer")
-                    freezeUtils.freezer(targetProcessRecord)
-//                    needFreezerProcesses.add(targetProcessRecord)
+//                    freezeUtils.freezer(targetProcessRecord)
+
+                    delayFreezerProcesses.add(targetProcessRecord)
                 }
             }
 
@@ -442,12 +452,11 @@ class AppStateChangeExecutor(
             }
         }
 
-//        if (needFreezerProcesses.isNotEmpty()) {
-//            needFreezerProcesses.forEach {
-//                atsLogD("[${it.processName}] freezer")
-//                freezeUtils.freezer(it)
-//            }
-//        }
+        if (delayFreezerProcesses.isNotEmpty()) {
+            extraExecutor.schedule({
+                freezeProcess(delayFreezerProcesses)
+            }, FREEZE_DELAY_TIME, TimeUnit.MILLISECONDS)
+        }
 
         if (makeIdle && !isWhiteApp) {
             setAppIdle(packageName, true)
@@ -456,6 +465,27 @@ class AppStateChangeExecutor(
         atsLogD("[$packageName] onPause handle end")
     }
 
+
+    private fun runInSysThreadWait(runMethod: AppStateChangeExecutor.() -> Unit) {
+        runInSysThread(runMethod)?.get()
+    }
+
+    private fun runInSysThread(runMethod: AppStateChangeExecutor.() -> Unit): Future<*>? {
+        return extraExecutor.submit {
+            apply(runMethod)
+        }
+    }
+
+    private fun freezeProcess(processes: HashSet<ProcessRecord>) {
+        processes.forEach {
+            if (!backgroundApps.contains(it.applicationInfo?.packageName)) {
+                atsLogD("[${it.applicationInfo?.packageName}] up to foreground again stop freeze")
+                return
+            }
+            atsLogD("[${it.processName}] delay freezer")
+            freezeUtils.freezer(it)
+        }
+    }
 
     private fun onResumeNew(
         packageName: String,
@@ -511,7 +541,20 @@ class AppStateChangeExecutor(
         atsLogD("[$packageName] onResume handle end")
     }
 
-    private fun getTargetProcessPid(packageName: String): ProcessRecord? {
+    fun getTargetProcessByPid(pid: Int): ProcessRecord? {
+        synchronized(processList.processRecords) {
+            for (processRecord in processList.processRecords) {
+                // 如果包名和事件的包名不同就不处理
+                if (pid == processRecord.pid) {
+                    return processRecord
+                }
+            }
+        }
+
+        return null
+    }
+
+    fun getTargetProcessPid(packageName: String): ProcessRecord? {
         synchronized(processList.processRecords) {
             for (processRecord in processList.processRecords) {
                 // 如果包名和事件的包名不同就不处理
@@ -605,8 +648,7 @@ class AppStateChangeExecutor(
         }
     }
 
-
-    private fun stopServiceLocked(processRecord: ProcessRecord) {
+    private fun stopServiceLocked_dep(processRecord: ProcessRecord) {
         atsLogD("[${processRecord.processName}] try to stop services")
         activityManagerService.activeServices.activeServices.javaClass.method {
             name = "stopInBackgroundLocked"
@@ -614,7 +656,7 @@ class AppStateChangeExecutor(
         }.get(activityManagerService.activeServices.activeServices).call(processRecord.uid)
     }
 
-    private fun stopServiceLocked_dep(processRecord: ProcessRecord) {
+    private fun stopServiceLocked(processRecord: ProcessRecord) {
         stopServiceLocked(processRecord, false)
     }
 
@@ -628,7 +670,7 @@ class AppStateChangeExecutor(
                 if (setDelay) {
                     mService.setDelay(false)
                 }
-                atsLogD("[${mService.serviceInfo.name}] try to stop")
+                atsLogD("[${processRecord.processName}] try to stop ${mService.serviceInfo.name}")
                 if (useOriginMethod) {
                     activityManagerService.activeServices.activeServices.javaClass
                         .method {
@@ -650,6 +692,7 @@ class AppStateChangeExecutor(
     private fun getTargetProcessRecordsNew(
         packageName: String
     ): List<ProcessRecord> {
+        processList.reloadProcessRecord()
         // 从进程列表对象获取所有进程
         val processRecords: List<ProcessRecord> =
             processList.processRecords
@@ -775,6 +818,6 @@ class AppStateChangeExecutor(
                 useOriginMethod = false
             }
         }
-        eventExecutor.submit(this)
+        extraExecutor.submit(this)
     }
 }

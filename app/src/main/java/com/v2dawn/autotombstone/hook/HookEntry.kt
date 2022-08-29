@@ -45,7 +45,7 @@ class HookEntry : IYukiHookXposedInit {
             loadHooker(PowerManagerServiceHook())
             loadHooker(ActivityTaskHook())
             loadHooker(ActivityIdleHook())
-//            loadHooker(TestActivityHook())
+            loadHooker(TestActivityHook())
 
         }
 
