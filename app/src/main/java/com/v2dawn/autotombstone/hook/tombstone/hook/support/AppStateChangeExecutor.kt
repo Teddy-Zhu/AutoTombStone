@@ -35,9 +35,7 @@ import java.util.concurrent.*
 class AppStateChangeExecutor(
     private val packageParam: PackageParam,
     ams: Any,
-) : Runnable {
-
-    val queue: BlockingQueue<String> = ArrayBlockingQueue(20)
+)  {
 
     val timerMap = Collections.synchronizedMap(HashMap<String, Timer?>())
     private val freezeUtils: FreezeUtils
@@ -61,7 +59,10 @@ class AppStateChangeExecutor(
 
     companion object {
 
-        val PKG_RELEASE = "pkgrel_"
+        val TYPE_RELEASE = 0
+        val TYPE_FREEZE = 1
+        val TYPE_NONE = 2
+
         var instance: AppStateChangeExecutor? = null
         public val backgroundApps = hashSetOf<String>()
 
@@ -104,46 +105,50 @@ class AppStateChangeExecutor(
         return null
     }
 
-    fun executeByAudioFocus(packageName: String, hasFocus: Boolean): Boolean {
+    fun executeByAudioFocus(packageName: String, hasFocus: Boolean) {
 
         atsLogD("[$packageName] ${if (hasFocus) "request" else "lost"} audio focus")
         if (hasFocus) {
             hasAudioFocusPackages.add(packageName)
-            return true
         } else {
             hasAudioFocusPackages.remove(packageName)
-            return execute(packageName)
+            extraExecutor.submit {
+                execute(packageName, TYPE_NONE)
+            }
         }
     }
 
 
-    fun executeByOverlayUi(pid: Int, hasOverlayUi: Boolean): Boolean {
+    fun executeByOverlayUi(pid: Int, hasOverlayUi: Boolean) {
 
         val pkgName = findPackageName(pid);
         if (pkgName == null) {
             atsLogD("not found pid process:$pid")
-            return false
+            return
         }
         atsLogD("[$pkgName] ${if (hasOverlayUi) "has" else "remove"} overlay ui")
         if (hasOverlayUi) {
             hasOverlayUiPackages.add(pkgName)
-            return true
+            return
         } else {
             hasOverlayUiPackages.remove(pkgName)
-            return execute(pkgName)
+            extraExecutor.submit {
+                execute(pkgName, TYPE_NONE)
+            }
         }
     }
 
-    @JvmOverloads
-    fun execute(packageName: String, release: Boolean = false): Boolean {
+    fun execute(packageName: String, type: Int): Boolean {
 
-        synchronized(packageName.intern()) {
+        synchronized("${packageName}Lock".intern()) {
             var timer = timerMap.getOrDefault(packageName, null)
 
             timer?.cancel()
-            if (release) {
+            if (TYPE_RELEASE == type) {
                 timerMap.remove(packageName)
-                queue.add(PKG_RELEASE + packageName)
+                extraExecutor.submit {
+                    check(packageName, type)
+                }
                 return true
             }
             timer = Timer()
@@ -151,7 +156,10 @@ class AppStateChangeExecutor(
             timer.schedule(object : TimerTask() {
                 override fun run() {
                     timerMap.remove(packageName)
-                    queue.add(packageName)
+
+                    extraExecutor.submit {
+                        check(packageName, type)
+                    }
                 }
             }, DELAY_TIME)
         }
@@ -159,30 +167,11 @@ class AppStateChangeExecutor(
         return true
     }
 
-    override fun run() {
-        while (true) {
-            try {
-                var pkg = queue.take()
-
-                extraExecutor.submit {
-                    if (pkg.startsWith(PKG_RELEASE)) {
-                        check(pkg.removePrefix(PKG_RELEASE), true)
-                    }else {
-                        check(pkg)
-                    }
-
-                }
-            } catch (eex: Exception) {
-                atsLogE("task exe error", e = eex)
-            }
-        }
-    }
-
     private fun check(packageName: String) {
-        check(packageName, false)
+        check(packageName, TYPE_NONE)
     }
 
-    private fun check(packageName: String, release: Boolean = false) {
+    private fun check(packageName: String, type: Int) {
         if ("android" == packageName || "system" == packageName) {
             return
         }
@@ -195,27 +184,25 @@ class AppStateChangeExecutor(
         }
         val pid = targetProcessRecord.pid
         atsLogD("[$packageName] pid=$pid")
-        if (release) {
-            isForeground = true
-        } else {
-//            val cpuforeground = isForeground(
-//                packageName,
-//                pid
-//            )
-            val sysForeground = isAppForeground(packageName)
-//            val hasOverlay = hasOverlayUiPackages.contains(packageName)
-//            val hasActivity = targetProcessRecord.hasRunningActivity(packageName)
-            isForeground = sysForeground
-//                    || hasOverlayUiPackages.contains(packageName) || hasAudioFocusPackages.contains(packageName)
+        when (type) {
+            TYPE_RELEASE -> {
+                isForeground = true
+                atsLogD("[$packageName] force release")
+            }
+            TYPE_FREEZE -> {
+                isForeground = false
+                atsLogD("[$packageName] force freeze")
 
-//            val importance = acService.javaClass.method {
-//                name = "getPackageImportance"
-//                param(StringType)
-//            }.get(acService).int(packageName)
-//            atsLogD("[$packageName] sys:${sysForeground},hasOverlay:${hasOverlay},hasActivity:${hasActivity},import:${importance}")
-            atsLogD("[$packageName] sys status:${sysForeground}")
-
+            }
+            TYPE_NONE -> {
+                isForeground = isAppForeground(packageName)
+                atsLogD("[$packageName] with sys status:${isForeground}")
+            }
+            else -> {
+                return
+            }
         }
+
 //        atsLogD(" pkg :$packageName isForeground :$isForeground forceRelease :$release")
 
         val runInFreeze = backgroundApps.contains(packageName)
@@ -836,6 +823,5 @@ class AppStateChangeExecutor(
                 useOriginMethod = false
             }
         }
-        extraExecutor.submit(this)
     }
 }
