@@ -35,9 +35,9 @@ import java.util.concurrent.*
 class AppStateChangeExecutor(
     private val packageParam: PackageParam,
     ams: Any,
-)  {
+) {
 
-    val timerMap = Collections.synchronizedMap(HashMap<String, Timer?>())
+    val timerMap = Collections.synchronizedMap(HashMap<String, ScheduledFuture<Any?>?>())
     private val freezeUtils: FreezeUtils
     private val freezerConfig = FreezerConfig(packageParam);
 
@@ -140,10 +140,15 @@ class AppStateChangeExecutor(
 
     fun execute(packageName: String, type: Int): Boolean {
 
-        synchronized("${packageName}Lock".intern()) {
-            var timer = timerMap.getOrDefault(packageName, null)
+        synchronized("${packageName}AutoTaskLock".intern()) {
+            var scheduledFuture = timerMap.getOrDefault(packageName, null)
 
-            timer?.cancel()
+            if (scheduledFuture != null) {
+                if (!scheduledFuture.isDone && !scheduledFuture.isCancelled) {
+                    scheduledFuture.cancel(false)
+                }
+            }
+
             if (TYPE_RELEASE == type) {
                 timerMap.remove(packageName)
                 extraExecutor.submit {
@@ -151,17 +156,16 @@ class AppStateChangeExecutor(
                 }
                 return true
             }
-            timer = Timer()
-            timerMap[packageName] = timer
-            timer.schedule(object : TimerTask() {
-                override fun run() {
-                    timerMap.remove(packageName)
 
-                    extraExecutor.submit {
-                        check(packageName, type)
-                    }
+            timerMap[packageName] = extraExecutor.schedule(Callable {
+                timerMap.remove(packageName)
+
+                extraExecutor.submit {
+                    check(packageName, type)
                 }
-            }, DELAY_TIME)
+
+            }, DELAY_TIME, TimeUnit.MILLISECONDS)
+
         }
 
         return true
