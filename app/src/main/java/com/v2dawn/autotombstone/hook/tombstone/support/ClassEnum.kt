@@ -1,7 +1,8 @@
 package com.v2dawn.autotombstone.hook.tombstone.support;
 
 object ClassEnum {
-
+    const val NotificationRecordClass = "com.android.server.notification.NotificationRecord"
+    const val TimingsTraceAndSlogClass = "com.android.server.utils.TimingsTraceAndSlog"
     const val IntentFirewallClass = "com.android.server.firewall.IntentFirewall"
     const val ProcessErrorStateRecordClass = "com.android.server.am.ProcessErrorStateRecord"
     const val ActivityTaskSupervisorClass = "com.android.server.wm.ActivityTaskSupervisor"

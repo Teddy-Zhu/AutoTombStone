@@ -246,6 +246,10 @@ class AppStateChangeExecutor(
 
     }
 
+    public fun needPrevent(packageName: String): Boolean {
+        return backgroundApps.contains(packageName)
+    }
+
     ////////// open api
 
     public fun controlApp(packageName: String) {
@@ -374,8 +378,11 @@ class AppStateChangeExecutor(
             return
         }
         // 后台应用添加包名
-        backgroundApps.add(packageName)
         val isWhiteApp = whiteApps.contains(packageName)
+
+        if (!isWhiteApp) {
+            backgroundApps.add(packageName)
+        }
 
         if (makeIdle && !isWhiteApp) {
             makePackageIdle(packageName)
@@ -601,6 +608,10 @@ class AppStateChangeExecutor(
 
     private fun isAppForeground(uid: Int): Boolean {
         return activityManagerService.isAppForeground(uid)
+    }
+
+    private fun allowBackgroundStart() {
+
     }
 
     /**

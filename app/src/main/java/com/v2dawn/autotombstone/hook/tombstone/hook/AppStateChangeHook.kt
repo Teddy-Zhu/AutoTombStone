@@ -91,7 +91,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
             injectMember {
                 method {
                     name = "systemReady"
-                    param(Runnable::class.java, "com.android.server.utils.TimingsTraceAndSlog")
+                    param(Runnable::class.java, ClassEnum.TimingsTraceAndSlogClass)
                 }
                 afterHook {
                     atsLogD("ready ams")
@@ -185,11 +185,11 @@ class AppStateChangeHook() : YukiBaseHooker() {
             injectMember {
                 method {
                     name = "registerDismissedByUser"
-                    param("com.android.server.notification.NotificationRecord")
+                    param(ClassEnum.NotificationRecordClass)
                 }
                 afterHook {
 
-                    val sbn = "com.android.server.notification.NotificationRecord".clazz
+                    val sbn = ClassEnum.NotificationRecordClass.clazz
                         .field { name = "sbn" }.get(args(0).any())
                         .cast<StatusBarNotification>()!!
 
@@ -208,11 +208,11 @@ class AppStateChangeHook() : YukiBaseHooker() {
             injectMember {
                 method {
                     name = "registerRemovedByApp"
-                    param("com.android.server.notification.NotificationRecord")
+                    param(ClassEnum.NotificationRecordClass)
                 }
                 afterHook {
 
-                    val sbn = "com.android.server.notification.NotificationRecord".clazz
+                    val sbn = ClassEnum.NotificationRecordClass.clazz
                         .field { name = "sbn" }.get(args(0).any())
                         .cast<StatusBarNotification>()!!
 
@@ -301,55 +301,30 @@ class AppStateChangeHook() : YukiBaseHooker() {
                     if (componentName != null) {
                         when (args(2).int()) {
                             TYPE_ACTIVITY -> {
-                                if ("com.eg.android.AlipayGphone" == componentName.packageName) {
+
+                                //ignored
+                            }
+                            TYPE_BROADCAST -> {
+
+                                if (appStateChangeExecutor.needPrevent(componentName.packageName)) {
+
                                     val callerPid = args(5).int()
 
                                     val processRecord =
                                         appStateChangeExecutor.getTargetProcessByPid(callerPid);
-
-                                    atsLogD("IntentFirewall activity ${args(1).cast<Any>()} caller:${processRecord?.processName}")
-                                }
-                            }
-                            TYPE_BROADCAST -> {
-                                val callerPid = args(5).int()
-
-                                val processRecord =
-                                    appStateChangeExecutor.getTargetProcessByPid(callerPid);
-
-//                            atsLogI("IntentFirewall broadcast ${args(1).cast<Any>()}")
-//                                if ("com.eg.android.AlipayGphone" == componentName.packageName) {
-
-                                atsLogD("[${componentName.packageName}] broadcast ${componentName.className} caller:${processRecord?.processName}")
-//                                }
-                                if (AppStateChangeExecutor.backgroundApps.contains(componentName.packageName)) {
-
-//                                    val callerPid = args(5).int()
-//
-//                                    val processRecord =
-//                                        appStateChangeExecutor.getTargetProcessByPid(callerPid);
                                     atsLogD("[${componentName.packageName}] block broadcast ${componentName.className} caller:${processRecord?.processName}")
 
                                     resultFalse()
                                 }
                             }
                             TYPE_SERVICE -> {
-                                val callerPid = args(5).int()
 
-                                val processRecord =
-                                    appStateChangeExecutor.getTargetProcessByPid(callerPid);
 
-                                if ("com.eg.android.AlipayGphone" == componentName.packageName) {
+                                if (appStateChangeExecutor.needPrevent(componentName.packageName)) {
+                                    val callerPid = args(5).int()
 
-                                    atsLogD("[${componentName.packageName}] monitor service ${componentName.className} caller:${processRecord?.processName}")
-
-//                                    appStateChangeExecutor.controlApp(processRecord?.processName)
-                                }
-
-                                if (AppStateChangeExecutor.backgroundApps.contains(componentName.packageName)) {
-//                                    val callerPid = args(5).int()
-//
-//                                    val processRecord =
-//                                        appStateChangeExecutor.getTargetProcessByPid(callerPid);
+                                    val processRecord =
+                                        appStateChangeExecutor.getTargetProcessByPid(callerPid);
                                     atsLogD("[${componentName.packageName}] block start service ${componentName.className} caller:${processRecord?.processName}")
                                     resultFalse()
                                 }
@@ -362,7 +337,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
         }.onHookClassNotFoundFailure {
             atsLogI("checkIntent class not found $packageName")
         }
-        atsLogI("hooked intent firewall")
+        atsLogI("hooked firewall")
     }
 
     private fun hookProcessKill(appStateChangeExecutor: AppStateChangeExecutor) {
