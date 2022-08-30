@@ -138,7 +138,7 @@ class AppStateChangeExecutor(
         }
     }
 
-    fun execute(packageName: String, type: Int): Boolean {
+    fun execute(packageName: String, type: Int = TYPE_NONE): Boolean {
 
         synchronized("${packageName}AutoTaskLock".intern()) {
             var scheduledFuture = timerMap.getOrDefault(packageName, null)
@@ -170,6 +170,7 @@ class AppStateChangeExecutor(
 
         return true
     }
+
 
     private fun check(packageName: String) {
         check(packageName, TYPE_NONE)
@@ -391,7 +392,7 @@ class AppStateChangeExecutor(
         // 遍历目标进程
         for (targetProcessRecord in targetProcessRecords) {
             // 应用又进入前台了
-            if (doubleCheckStatus) {
+            if (doubleCheckStatus && !isWhiteApp) {
                 if (!backgroundApps.contains(packageName)) {
                     // 为保证解冻顺利
                     return

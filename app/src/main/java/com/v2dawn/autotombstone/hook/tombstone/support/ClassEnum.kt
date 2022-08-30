@@ -1,6 +1,8 @@
 package com.v2dawn.autotombstone.hook.tombstone.support;
 
 object ClassEnum {
+    const val CustomTileClass = "com.android.systemui.qs.external.CustomTile"
+    const val QSTileImplClass = "com.android.systemui.qs.tileimpl.QSTileImpl"
     const val NotificationRecordClass = "com.android.server.notification.NotificationRecord"
     const val TimingsTraceAndSlogClass = "com.android.server.utils.TimingsTraceAndSlog"
     const val IntentFirewallClass = "com.android.server.firewall.IntentFirewall"

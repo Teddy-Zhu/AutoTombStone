@@ -94,6 +94,12 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
         return true
     }
 
+    override fun unControlSync(packageName: String?): Boolean {
+        if (packageName == null) return false
+        appStateChangeExecutor.unControlAppWait(packageName)
+        return true
+    }
+
     override fun queryBackgroundApps(): MutableList<String> {
         return arrayListOf<String>().apply {
             addAll(AppStateChangeExecutor.backgroundApps)

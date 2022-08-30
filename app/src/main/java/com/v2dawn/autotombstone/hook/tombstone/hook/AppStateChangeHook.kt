@@ -82,7 +82,10 @@ class AppStateChangeHook() : YukiBaseHooker() {
         }
         atsLogD("[$packageName] $eventText")
 
-        appStateChangeExecutor.execute(packageName, event == ACTIVITY_RESUMED)
+        appStateChangeExecutor.execute(
+            packageName,
+            if (event == ACTIVITY_RESUMED) AppStateChangeExecutor.TYPE_RELEASE else AppStateChangeExecutor.TYPE_NONE
+        )
 
     }
 
@@ -111,38 +114,10 @@ class AppStateChangeHook() : YukiBaseHooker() {
 //                    registerAtsConfigService(appStateChangeExecutor);
                     hookOther(appStateChangeExecutor)
                     hookProcessKill(appStateChangeExecutor)
-                    hookTileClick(appStateChangeExecutor)
                     hookStartIntent(appStateChangeExecutor)
                 }
             }
         }
-    }
-
-    private fun hookTileClick(appStateChangeExecutor: AppStateChangeExecutor) {
-
-        val MSG_TILE_CLICKED = "${ClassEnum.TileServiceClass}\$H".clazz.field {
-            name = "MSG_TILE_CLICKED"
-        }.get().int()!!
-        "${ClassEnum.TileServiceClass}\$H".hook {
-            injectMember {
-                method {
-                    name = "handleMessage"
-                    param(MessageClass)
-                }
-                beforeHook {
-                    val msg = args(0).cast<Message>() ?: return@beforeHook
-                    val context = instance as Context
-                    atsLogD("[${context.packageName}] tile msg")
-                    if (msg.what == MSG_TILE_CLICKED) {
-                        atsLogD("[${context.packageName}] tile click")
-                        appStateChangeExecutor.execute(context.packageName, true)
-                    }
-                }
-            }.onAllFailure {
-                atsLogE("handle tile msg error", e = it)
-            }
-        }
-        atsLogI("hook tile click")
     }
 
     private fun hookOther(appStateChangeExecutor: AppStateChangeExecutor) {

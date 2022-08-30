@@ -22,5 +22,7 @@ interface IAtsConfigService {
 
     boolean restartSystem();
 
+    boolean unControlSync(String packageName);
+
     List<String> queryBackgroundApps();
 }

@@ -15,6 +15,11 @@ import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
 @InjectYukiHookWithXposed(isUsingResourcesHook = false)
 class HookEntry : IYukiHookXposedInit {
 
+    companion object {
+        const val SYSTEMUI_PACKAGE_NAME = "com.android.systemui"
+
+    }
+
     override fun onInit() = configs {
         debugTag = "autotombstone"
         isDebug = false
@@ -45,16 +50,13 @@ class HookEntry : IYukiHookXposedInit {
             loadHooker(PowerManagerServiceHook())
             loadHooker(ActivityTaskHook())
             loadHooker(ActivityIdleHook())
-            loadHooker(TestActivityHook())
 
         }
 
-//        loadApp("com.android.systemui"){
-//            atsLogI("system ui")
-//
-//            loadHooker(TestActivityHook())
-//
-//        }
+        loadApp(SYSTEMUI_PACKAGE_NAME) {
+            loadHooker(TileHook())
+            atsLogI("hook system ui")
+        }
 //        loadApp(BuildConfig.APPLICATION_ID) {
 //            loadHooker(ConfigReloadHook())
 //            atsLogI("load config reload hook")
