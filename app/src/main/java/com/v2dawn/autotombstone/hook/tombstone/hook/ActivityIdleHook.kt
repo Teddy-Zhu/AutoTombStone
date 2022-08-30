@@ -16,7 +16,7 @@ class ActivityIdleHook : YukiBaseHooker() {
 
         if (activityRecord.intent != null) {
             val pkg = activityRecord.intent.component?.packageName
-            if (AppStateChangeExecutor.backgroundApps.contains(pkg)) {
+            if (AppStateChangeExecutor.freezedApps.contains(pkg)) {
                 atsLogD("[$pkg] activity idle ignored")
                 return true
             }

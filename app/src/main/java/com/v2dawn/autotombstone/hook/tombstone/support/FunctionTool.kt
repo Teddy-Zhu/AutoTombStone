@@ -1,6 +1,9 @@
 package com.v2dawn.autotombstone.hook.tombstone.support;
 
+import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.os.IAtsConfigService
+import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.hook.core.YukiMemberHookCreater
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.log.loggerD
@@ -21,6 +24,13 @@ fun YukiMemberHookCreater.MemberHookCreater.doNothing() {
 fun atsLogI(msg: String) {
     loggerI(msg = msg)
 }
+
+fun atsLogDApp(msg: String, atsConfigService: IAtsConfigService) {
+    if (atsConfigService.getConfig(ConfigConst.COMMON_NAME, ConfigConst.ENABLE_MODULE_LOG.key)) {
+        loggerD(msg = msg)
+    }
+}
+
 
 fun atsLogD(msg: String) {
     if (YukiHookModulePrefs.InnerOpen.instance().name(ConfigConst.COMMON_NAME)
@@ -61,7 +71,7 @@ object FunctionTool {
         return applicationInfo.flags and (FLAG_SYSTEM or FLAG_UPDATED_SYSTEM_APP) != 0
     }
 
-    fun isImportantSystemApp(applicationInfo: ApplicationInfo):Boolean{
+    fun isImportantSystemApp(applicationInfo: ApplicationInfo): Boolean {
         return applicationInfo.uid < 10000
     }
 

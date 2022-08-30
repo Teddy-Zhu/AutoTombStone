@@ -6,6 +6,8 @@ import java.lang.String;
 interface IAtsConfigService {
     void configChange(String name,String key);
 
+    boolean getConfig(String name,String key);
+
     boolean control(String packageName);
 
     boolean unControl(String packageName);

@@ -4,16 +4,13 @@ import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.param.HookParam
 import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
-import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.BroadcastFilter
 import com.v2dawn.autotombstone.hook.tombstone.support.*
-import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryBlackSysAppsList
-import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteAppList
-import com.v2dawn.autotombstone.hook.tombstone.support.FunctionTool.queryWhiteProcessesList
 
+@Deprecated(message = "replaced by firewall")
 class BroadcastDeliverHook : YukiBaseHooker() {
 
-    private fun needClear(param: HookParam):Any?{
+    private fun needClear(param: HookParam): Any? {
         val arg1 = param.args(1).any() ?: return null
 
         val broadcastFilter = BroadcastFilter(arg1)
@@ -36,18 +33,20 @@ class BroadcastDeliverHook : YukiBaseHooker() {
         // 如果包名为空就不处理(猜测系统进程可能为空)
         processRecord.processName ?: return null
         // 如果是前台应用就不处理
-        if (!AppStateChangeExecutor.backgroundApps.contains(currentPackageName)) {
+        if (!AppStateChangeExecutor.freezedApps.contains(currentPackageName)) {
 //            atsLogD("occur broadcast not freeze app ignored")
             return null
         }
         // 暂存
+
+
+        //double check for firewall
         val app: Any = processRecord.processRecord
 
         atsLogD("[${processRecord.processName}|${currentPackageName}] clear broadcast")
-        // 清楚广播
         receiverList.clear()
-
         return app
+
     }
 
     private fun afterHookedMethod(param: HookParam, app: Any?) {

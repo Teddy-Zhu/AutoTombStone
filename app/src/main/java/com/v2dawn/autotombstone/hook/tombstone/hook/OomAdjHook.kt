@@ -58,7 +58,7 @@ class OomAdjHook :
             return
         }
         // 如果是前台应用就不处理
-        if (!AppStateChangeExecutor.backgroundApps.contains(packageName)) {
+        if (!AppStateChangeExecutor.freezedApps.contains(packageName)) {
             return
         }
         val finalCurlAdj: Int

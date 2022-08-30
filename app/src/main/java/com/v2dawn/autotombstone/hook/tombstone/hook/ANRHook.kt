@@ -2,7 +2,6 @@ package com.v2dawn.autotombstone.hook.tombstone.hook;
 
 import android.content.pm.ApplicationInfo
 import android.os.Build
-import android.util.Log
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.type.android.ApplicationInfoClass
@@ -21,7 +20,7 @@ class ANRHook : YukiBaseHooker() {
             return false
         }
 
-        if (AppStateChangeExecutor.backgroundApps.contains(application.packageName)) {
+        if (AppStateChangeExecutor.freezedApps.contains(application.packageName)) {
             atsLogD("[${processName}|${application.packageName}] keep no anr")
             return true
         }
@@ -127,8 +126,6 @@ class ANRHook : YukiBaseHooker() {
                                 "AnrRecordClass"
                             )
                         ) {
-                            printStackTrace(Throwable())
-
                             resultNull()
                         }
                     }

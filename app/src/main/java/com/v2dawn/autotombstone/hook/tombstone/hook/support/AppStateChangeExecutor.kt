@@ -64,7 +64,7 @@ class AppStateChangeExecutor(
         val TYPE_NONE = 2
 
         var instance: AppStateChangeExecutor? = null
-        public val backgroundApps = hashSetOf<String>()
+        val freezedApps = hashSetOf<String>()
 
         val hasOverlayUiPackages = hashSetOf<String>()
         val hasAudioFocusPackages = hashSetOf<String>()
@@ -76,9 +76,9 @@ class AppStateChangeExecutor(
         private var STANDBY_BUCKET_NEVER = 50
 
         fun getBackgroundIndex(packageName: String): Int {
-            var total: Int = backgroundApps.size
-            for (pkg in backgroundApps) {
-                if (backgroundApps.contains(pkg)) {
+            var total: Int = freezedApps.size
+            for (pkg in freezedApps) {
+                if (freezedApps.contains(pkg)) {
                     continue
                 }
                 total -= if (packageName == pkg) {
@@ -148,6 +148,7 @@ class AppStateChangeExecutor(
                     scheduledFuture.cancel(false)
                 }
             }
+            clearSchedule(packageName)
 
             if (TYPE_RELEASE == type) {
                 timerMap.remove(packageName)
@@ -210,7 +211,7 @@ class AppStateChangeExecutor(
 
 //        atsLogD(" pkg :$packageName isForeground :$isForeground forceRelease :$release")
 
-        val runInFreeze = backgroundApps.contains(packageName)
+        val runInFreeze = freezedApps.contains(packageName)
         // 重要系统APP
         val isImportantSystemApp = isImportantSystemApp(packageName)
         if (isImportantSystemApp) {
@@ -231,22 +232,38 @@ class AppStateChangeExecutor(
                 return
             }
         }
-        val threadCount = (extraExecutor as ThreadPoolExecutor).activeCount
-        atsLogD("current active threads num:$threadCount")
+
         if (isForeground) {
             //继续事件
             onResumeNew(packageName, true, false, runInFreeze)
         } else {
 
             //暂停事件
-            onPauseNew(packageName, true, false)
+            onPauseNew(packageName, true, false, stopService = false)
         }
         atsLogD("[$packageName] resolve end")
 
     }
 
+    public fun getPackageNameByUId(uid: Int): String? {
+
+        val pkgArr = context.packageManager.getPackagesForUid(uid)
+        return if (pkgArr == null || pkgArr.isEmpty()) null else pkgArr[0]
+    }
+
     public fun needPrevent(packageName: String): Boolean {
-        return backgroundApps.contains(packageName)
+        return freezedApps.contains(packageName)
+    }
+
+    private fun clearSchedule(packageName: String, interrupt: Boolean = false) {
+        atsLogD("[$packageName] clear schedule")
+        var scheduledFuture = timerMap.getOrDefault(packageName, null)
+
+        if (scheduledFuture != null) {
+            if (!scheduledFuture.isDone && !scheduledFuture.isCancelled) {
+                scheduledFuture.cancel(interrupt)
+            }
+        }
     }
 
     ////////// open api
@@ -254,6 +271,7 @@ class AppStateChangeExecutor(
     public fun controlApp(packageName: String) {
         atsLogD("[$packageName] user operate onPause")
         runInSysThread {
+            clearSchedule(packageName, true)
             onPauseNew(packageName, false, false)
         }
     }
@@ -261,6 +279,7 @@ class AppStateChangeExecutor(
     public fun unControlAppWait(packageName: String) {
         atsLogD("[$packageName] user operate onResume")
         runInSysThreadWait {
+            clearSchedule(packageName, true)
             onResumeNew(packageName, false, false, true)
         }
     }
@@ -268,6 +287,7 @@ class AppStateChangeExecutor(
     public fun unControlApp(packageName: String) {
         atsLogD("[$packageName] user operate onResume")
         runInSysThread {
+            clearSchedule(packageName, true)
             onResumeNew(packageName, false, false, true)
         }
     }
@@ -380,7 +400,7 @@ class AppStateChangeExecutor(
         val isWhiteApp = whiteApps.contains(packageName)
 
         if (!isWhiteApp) {
-            backgroundApps.add(packageName)
+            freezedApps.add(packageName)
         }
 
         if (makeIdle && !isWhiteApp) {
@@ -393,7 +413,7 @@ class AppStateChangeExecutor(
         for (targetProcessRecord in targetProcessRecords) {
             // 应用又进入前台了
             if (doubleCheckStatus && !isWhiteApp) {
-                if (!backgroundApps.contains(packageName)) {
+                if (!freezedApps.contains(packageName)) {
                     // 为保证解冻顺利
                     return
                 }
@@ -482,9 +502,14 @@ class AppStateChangeExecutor(
         }
     }
 
+    private fun runInSysThreadWithResult(callable: Callable<Any>): Any {
+        return extraExecutor.submit(callable).get()
+
+    }
+
     private fun freezeProcess(processes: HashSet<ProcessRecord>) {
         processes.forEach {
-            if (!backgroundApps.contains(it.applicationInfo?.packageName)) {
+            if (!freezedApps.contains(it.applicationInfo?.packageName)) {
                 atsLogD("[${it.applicationInfo?.packageName}] up to foreground again stop freeze")
                 return
             }
@@ -502,7 +527,7 @@ class AppStateChangeExecutor(
         wakeLock: Boolean = true
     ) {
         atsLogD("[$packageName] onResume handle start")
-        backgroundApps.remove(packageName)
+        freezedApps.remove(packageName)
 
         if (!lastStatusChange) {
             atsLogD("[$packageName] status not change ignored")
@@ -525,7 +550,7 @@ class AppStateChangeExecutor(
 
             if (doubleCheckStatus) {
                 // 确保APP不在后台
-                if (backgroundApps.contains(packageName)) {
+                if (freezedApps.contains(packageName)) {
                     return
                 }
             }
@@ -758,6 +783,14 @@ class AppStateChangeExecutor(
             atsLogD("[$packageName] not found")
         }
         return null
+    }
+
+    public fun getConfig(name: String, key: String): Boolean {
+        return runInSysThreadWithResult(Callable {
+            packageParam.apply {
+                return@Callable prefs.name(name).getBoolean(key, false)
+            }
+        }) as Boolean
     }
 
     public fun reloadConfig(name: String, key: String) {

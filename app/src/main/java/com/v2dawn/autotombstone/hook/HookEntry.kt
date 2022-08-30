@@ -43,7 +43,7 @@ class HookEntry : IYukiHookXposedInit {
             loadHooker(CacheFreezerHook())
             loadHooker(UsageContextHook())
             loadHooker(AppStateChangeHook())
-            loadHooker(BroadcastDeliverHook())
+//            loadHooker(BroadcastDeliverHook())
 //            loadHooker(OomAdjHook())
             loadHooker(ANRHook())
             loadHooker(TaskTrimHook())

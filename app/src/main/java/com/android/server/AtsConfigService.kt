@@ -2,7 +2,6 @@ package com.android.server
 
 import android.content.Context
 import android.os.IAtsConfigService
-import android.os.PowerManager
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogD
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
@@ -45,6 +44,10 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
             timerMap[uk] = timer
         }
 
+    }
+
+    override fun getConfig(name: String?, key: String?): Boolean {
+        return appStateChangeExecutor.getConfig(name!!, key!!)
     }
 
     override fun control(packageName: String?): Boolean {
@@ -102,7 +105,7 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
 
     override fun queryBackgroundApps(): MutableList<String> {
         return arrayListOf<String>().apply {
-            addAll(AppStateChangeExecutor.backgroundApps)
+            addAll(AppStateChangeExecutor.freezedApps)
         }
     }
 

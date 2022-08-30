@@ -2,12 +2,10 @@ package com.v2dawn.autotombstone.hook.tombstone.hook
 
 import android.content.ComponentName
 import android.content.Context
-import android.media.AudioFocusRequest
+import android.content.Intent
 import android.media.AudioManager
 import android.os.Build
-import android.os.Message
 import android.service.notification.StatusBarNotification
-import android.util.Log
 import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.field
@@ -16,13 +14,11 @@ import com.highcapable.yukihookapi.hook.param.HookParam
 import com.highcapable.yukihookapi.hook.type.android.ComponentNameClass
 import com.highcapable.yukihookapi.hook.type.android.IBinderClass
 import com.highcapable.yukihookapi.hook.type.android.IntentClass
-import com.highcapable.yukihookapi.hook.type.android.MessageClass
 import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.highcapable.yukihookapi.hook.type.java.StringType
 import com.v2dawn.autotombstone.hook.tombstone.hook.support.AppStateChangeExecutor
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.Event
-import com.v2dawn.autotombstone.hook.tombstone.server.PowerManagerService
 import com.v2dawn.autotombstone.hook.tombstone.server.ProcessRecord
 import com.v2dawn.autotombstone.hook.tombstone.support.*
 
@@ -61,17 +57,16 @@ class AppStateChangeHook() : YukiBaseHooker() {
         if ("android" == packageName) {
             return
         }
-        atsLogD("[${packageName}] componentName:${componentName}, root:${rootComponentName} event:$event")
         val eventText: String
         when (event) {
             ACTIVITY_PAUSED -> {
-                if (AppStateChangeExecutor.backgroundApps.contains(packageName)) {
+                if (AppStateChangeExecutor.freezedApps.contains(packageName)) {
                     return
                 }
                 eventText = "paused"
             }
             ACTIVITY_RESUMED -> {
-                if (!AppStateChangeExecutor.backgroundApps.contains(packageName)) {
+                if (!AppStateChangeExecutor.freezedApps.contains(packageName)) {
                     return
                 }
                 eventText = "resumed"
@@ -80,7 +75,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
                 return
             }
         }
-        atsLogD("[$packageName] $eventText")
+        atsLogD("[$packageName] event:$eventText")
 
         appStateChangeExecutor.execute(
             packageName,
@@ -271,59 +266,41 @@ class AppStateChangeHook() : YukiBaseHooker() {
                     )
                 }
                 beforeHook {
-                    val componentName = args(1).cast<ComponentName>()
-
-                    if (componentName != null) {
-//                        if ("com.tencent.mm" == componentName.packageName || "com.ss.android.article.news" == componentName.packageName) {
-//                            val callerPid = args(5).int()
-//
-//                            val processRecord =
-//                                appStateChangeExecutor.getTargetProcessByPid(callerPid);
-//                            atsLogI(
-//                                "start $componentName ," +
-//                                        "ps:${processRecord?.processName ?: processRecord?.applicationInfo?.packageName}" +
-//                                        "type:${args(2).int()} " +
-//                                        "intent:${args(3).any()}" +
-//                                        "calluid:${args(4).any()}" +
-//                                        "calpid:${args(5).any()}" +
-//                                        "resolvedType:${args(6).any()}" +
-//                                        "recuid:${args(7).any()}"
-//                            )
-//                        }
-
-                        when (args(2).int()) {
-                            TYPE_ACTIVITY -> {
-
-                                //ignored
-                            }
-                            TYPE_BROADCAST -> {
-
-                                if (appStateChangeExecutor.needPrevent(componentName.packageName)) {
-
-                                    val callerPid = args(5).int()
-
-                                    val processRecord =
-                                        appStateChangeExecutor.getTargetProcessByPid(callerPid);
-                                    atsLogD("[${componentName.packageName}] block broadcast ${componentName.className} caller:${processRecord?.processName}")
-
-                                    resultFalse()
-                                }
-                            }
-                            TYPE_SERVICE -> {
 
 
-                                if (appStateChangeExecutor.needPrevent(componentName.packageName)) {
-                                    val callerPid = args(5).int()
+                    when (args(2).int()) {
+                        TYPE_ACTIVITY -> {
 
-                                    val processRecord =
-                                        appStateChangeExecutor.getTargetProcessByPid(callerPid);
-                                    atsLogD("[${componentName.packageName}] block start service ${componentName.className} caller:${processRecord?.processName}")
-                                    resultFalse()
-                                }
-//                                atsLogI("IntentFirewall service ${args(1).cast<Any>()}")
+                            //ignored
+                        }
+                        TYPE_BROADCAST -> {
+
+                            val pkgName = appStateChangeExecutor.getPackageNameByUId(args(7).int())
+                                ?: // atsLogD("check broadcast ignored reason:pkg null")
+                                return@beforeHook
+
+                            if (appStateChangeExecutor.needPrevent(pkgName)) {
+                                val intent = args(3).cast<Intent>()
+                                atsLogD("[${pkgName}] block broadcast ${intent?.action}")
+                                resultFalse()
                             }
                         }
+                        TYPE_SERVICE -> {
+
+                            val componentName = args(1).cast<ComponentName>()
+                            val pkgName = componentName?.packageName
+                            if (pkgName == null) {
+                                atsLogD("check service ignored reason:pkg null")
+                                return@beforeHook
+                            }
+                            if (appStateChangeExecutor.needPrevent(pkgName)) {
+                                atsLogD("[${pkgName}] block service ${componentName?.className}")
+                                resultFalse()
+                            }
+//                                atsLogI("IntentFirewall service ${args(1).cast<Any>()}")
+                        }
                     }
+
                 }
             }
         }.onHookClassNotFoundFailure {
@@ -349,7 +326,7 @@ class AppStateChangeHook() : YukiBaseHooker() {
                         val packageName: String =
                             processRecord.applicationInfo?.packageName ?: return@beforeHook
 
-                        if (AppStateChangeExecutor.backgroundApps.contains(packageName)) {
+                        if (AppStateChangeExecutor.freezedApps.contains(packageName)) {
                             appStateChangeExecutor.stopPackage(packageName)
                         }
                     }
