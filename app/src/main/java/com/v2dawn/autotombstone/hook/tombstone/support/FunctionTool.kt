@@ -1,18 +1,15 @@
 package com.v2dawn.autotombstone.hook.tombstone.support;
 
-import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.os.IAtsConfigService
-import com.android.server.AtsConfigService
+import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.hook.core.YukiMemberHookCreater
 import com.highcapable.yukihookapi.hook.factory.field
-import com.highcapable.yukihookapi.hook.log.loggerD
-import com.highcapable.yukihookapi.hook.log.loggerE
 import com.highcapable.yukihookapi.hook.log.loggerI
-import com.highcapable.yukihookapi.hook.log.loggerW
 import com.highcapable.yukihookapi.hook.param.PackageParam
 import com.highcapable.yukihookapi.hook.xposed.prefs.YukiHookModulePrefs
 import com.v2dawn.autotombstone.config.ConfigConst
+import de.robv.android.xposed.XposedBridge
 
 
 fun YukiMemberHookCreater.MemberHookCreater.doNothing() {
@@ -21,13 +18,17 @@ fun YukiMemberHookCreater.MemberHookCreater.doNothing() {
     }
 }
 
+fun log(level: String, msg: String) {
+    XposedBridge.log("[${YukiHookAPI.Configs.debugTag}|${level}]$msg")
+}
+
 fun atsLogI(msg: String) {
-    loggerI(msg = msg)
+    log("I", msg)
 }
 
 fun atsLogDApp(msg: String, atsConfigService: IAtsConfigService) {
     if (atsConfigService.getConfig(ConfigConst.COMMON_NAME, ConfigConst.ENABLE_MODULE_LOG.key)) {
-        loggerD(msg = msg)
+        log("D", msg)
     }
 }
 
@@ -36,16 +37,17 @@ fun atsLogD(msg: String) {
     if (YukiHookModulePrefs.InnerOpen.instance().name(ConfigConst.COMMON_NAME)
             .get(ConfigConst.ENABLE_MODULE_LOG)
     ) {
-        loggerD(msg = msg)
+        log("D", msg)
     }
 }
 
 fun atsLogE(msg: String, e: Throwable) {
-    loggerE(msg = msg, e = e)
+    log("E", msg)
+    XposedBridge.log(e)
 }
 
 fun atsLogW(msg: String) {
-    loggerW(msg = msg)
+    log("W", msg)
 }
 
 fun ApplicationInfo.isSystem(): Boolean {
