@@ -15,6 +15,14 @@
     android:paddingBottom="15dp"
     tools:ignore="HardcodedText">
 
+    <androidx.constraintlayout.utils.widget.ImageFilterView
+        android:id="@+id/adp_app_icon"
+        android:transitionName="app_icon"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginEnd="8dp"
+        android:src="@mipmap/ic_about" />
+
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -28,13 +36,6 @@
             android:layout_marginBottom="5dp"
             android:gravity="center|start">
 
-            <androidx.constraintlayout.utils.widget.ImageFilterView
-                android:id="@+id/adp_app_icon"
-                android:transitionName="app_icon"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:layout_marginEnd="8dp"
-                android:src="@mipmap/ic_about" />
 
             <TextView
                 android:id="@+id/adp_app_name"
