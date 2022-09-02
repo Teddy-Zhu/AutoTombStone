@@ -46,6 +46,15 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
 
     }
 
+    override fun getSupportFreezeType(): IntArray {
+        return appStateChangeExecutor.getSupportFreezeType()
+    }
+
+
+    override fun getFreezeType(): Int {
+        return appStateChangeExecutor.getFreezeType()
+    }
+
     override fun getConfig(name: String?, key: String?): Boolean {
         return appStateChangeExecutor.getConfig(name!!, key!!)
     }

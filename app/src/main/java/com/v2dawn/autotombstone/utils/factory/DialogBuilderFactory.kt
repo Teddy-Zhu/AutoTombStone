@@ -233,6 +233,33 @@ fun Context.showOperatePopup(view: View, cb: (index: Int, resId: Int) -> Unit) {
     popupMenu.show(this, view)
 }
 
+public open class PopUpItem(val text: String)
+
+fun <T : PopUpItem> Context.showCommonPopup(
+    view: View,
+    items: List<T>,
+    selected: Int = -1,
+    cb: (index: Int, t: T) -> Unit
+) {
+    val popupMenu = popupMenu {
+        dropdownGravity = Gravity.END
+        section {
+            items.forEachIndexed { index, t ->
+                item {
+                    label = t.text
+                    icon = if (selected == index) R.drawable.ic_right else 0
+                    callback = { //optional
+                        cb(index, t)
+                    }
+                }
+
+            }
+        }
+    }
+
+    popupMenu.show(this, view)
+}
+
 fun Context.showPopup(view: View, currentIndex: Int, cb: (index: Int) -> Unit) {
     val popupMenu = popupMenu {
         dropdownGravity = Gravity.END

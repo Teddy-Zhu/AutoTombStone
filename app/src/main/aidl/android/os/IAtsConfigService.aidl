@@ -6,6 +6,10 @@ import java.lang.String;
 interface IAtsConfigService {
     void configChange(String name,String key);
 
+    int[] getSupportFreezeType();
+
+    int getFreezeType();
+
     boolean getConfig(String name,String key);
 
     boolean control(String packageName);

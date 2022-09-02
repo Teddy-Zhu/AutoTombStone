@@ -35,5 +35,7 @@
     <string name="kill_app">kill app</string>
     <string name="freeze_app">Freeze App</string>
     <string name="unfreeze_app">UnFreeze App</string>
+    <string name="stop_service_when_freeze">stop services when freeze</string>
+    <string name="freeze_method">freeze type</string>
 
 </resources>

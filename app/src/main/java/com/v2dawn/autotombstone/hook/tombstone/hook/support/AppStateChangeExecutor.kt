@@ -14,6 +14,7 @@ import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.param.PackageParam
 import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.highcapable.yukihookapi.hook.type.java.StringType
+import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.hook.tombstone.hook.system.CpuGroup
 import com.v2dawn.autotombstone.hook.tombstone.hook.system.Stat
 import com.v2dawn.autotombstone.hook.tombstone.server.ActivityManagerService
@@ -55,7 +56,7 @@ class AppStateChangeExecutor(
     private var useOriginMethod = true
     private val acService: Any
 
-    private val extraExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(4)
+    private val executor: ScheduledExecutorService = Executors.newScheduledThreadPool(4)
 
     companion object {
 
@@ -112,7 +113,7 @@ class AppStateChangeExecutor(
             hasAudioFocusPackages.add(packageName)
         } else {
             hasAudioFocusPackages.remove(packageName)
-            extraExecutor.submit {
+            executor.submit {
                 execute(packageName, TYPE_NONE)
             }
         }
@@ -132,7 +133,7 @@ class AppStateChangeExecutor(
             return
         } else {
             hasOverlayUiPackages.remove(pkgName)
-            extraExecutor.submit {
+            executor.submit {
                 execute(pkgName, TYPE_NONE)
             }
         }
@@ -152,16 +153,16 @@ class AppStateChangeExecutor(
 
             if (TYPE_RELEASE == type) {
                 timerMap.remove(packageName)
-                extraExecutor.submit {
+                executor.submit {
                     check(packageName, type)
                 }
                 return true
             }
 
-            timerMap[packageName] = extraExecutor.schedule(Callable {
+            timerMap[packageName] = executor.schedule(Callable {
                 timerMap.remove(packageName)
 
-                extraExecutor.submit {
+                executor.submit {
                     check(packageName, type)
                 }
 
@@ -237,9 +238,12 @@ class AppStateChangeExecutor(
             //继续事件
             onResumeNew(packageName, true, false, runInFreeze)
         } else {
-
+            var stopService = false
+            packageParam.apply {
+                stopService = prefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.STOP_SERVICE)
+            }
             //暂停事件
-            onPauseNew(packageName, true, false, stopService = false)
+            onPauseNew(packageName, true, false, stopService = stopService)
         }
         atsLogD("[$packageName] resolve end")
 
@@ -348,9 +352,18 @@ class AppStateChangeExecutor(
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun restart() {
         val manager = context.getSystemService(Context.POWER_SERVICE) as PowerManager;
         manager.reboot("reboot")
+    }
+
+    public fun getSupportFreezeType(): IntArray {
+        return freezerConfig.getSupportedFreezeType()
+    }
+
+    public fun getFreezeType(): Int {
+        return freezerConfig.getFreezeType();
     }
 
 
@@ -408,7 +421,7 @@ class AppStateChangeExecutor(
             setAppIdle(packageName, true)
         }
 
-        val delayFreezerProcesses = hashSetOf<ProcessRecord>()
+//        val delayFreezerProcesses = hashSetOf<ProcessRecord>()
         // 遍历目标进程
         for (targetProcessRecord in targetProcessRecords) {
             // 应用又进入前台了
@@ -465,9 +478,9 @@ class AppStateChangeExecutor(
             } else {
                 if (freeze) {
                     atsLogD("[$processName] freezer")
-//                    freezeUtils.freezer(targetProcessRecord)
+                    freezeUtils.freezer(targetProcessRecord)
 
-                    delayFreezerProcesses.add(targetProcessRecord)
+//                    delayFreezerProcesses.add(targetProcessRecord)
                 }
             }
 
@@ -478,11 +491,11 @@ class AppStateChangeExecutor(
             }
         }
 
-        if (delayFreezerProcesses.isNotEmpty()) {
-            extraExecutor.schedule({
-                freezeProcess(delayFreezerProcesses)
-            }, FREEZE_DELAY_TIME, TimeUnit.MILLISECONDS)
-        }
+//        if (delayFreezerProcesses.isNotEmpty()) {
+//            extraExecutor.schedule({
+//                freezeProcess(delayFreezerProcesses)
+//            }, FREEZE_DELAY_TIME, TimeUnit.MILLISECONDS)
+//        }
 
         if (makeIdle && !isWhiteApp) {
             setAppIdle(packageName, true)
@@ -497,13 +510,13 @@ class AppStateChangeExecutor(
     }
 
     private fun runInSysThread(runMethod: AppStateChangeExecutor.() -> Unit): Future<*>? {
-        return extraExecutor.submit {
+        return executor.submit {
             apply(runMethod)
         }
     }
 
     private fun runInSysThreadWithResult(callable: Callable<Any>): Any {
-        return extraExecutor.submit(callable).get()
+        return executor.submit(callable).get()
 
     }
 

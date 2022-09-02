@@ -22,8 +22,9 @@ class FreezeUtils(
 ) {
 
     companion object {
-
-        private const val CONT = 18
+        private const val SIGCONT = 18
+        private const val SIGSTOP = 19
+        private const val SIGTSTP = 20
         private const val FREEZE_ACTION = 1
         private const val UNFREEZE_ACTION = 0
         private const val V1_FREEZER_FROZEN_PORCS =
@@ -32,41 +33,43 @@ class FreezeUtils(
             "/sys/fs/cgroup/freezer/perf/thawed/cgroup.procs"
     }
 
-    private var freezerApi = false
-    private var freezerVersion = 0
-    private var stopSignal: Int = 19
-    private var useKill: Boolean = false
 
     fun freezer(processRecord: ProcessRecord) {
-        if (useKill) {
-            Process.sendSignal(processRecord.pid, stopSignal)
-        } else {
-            if (freezerVersion == 2) {
-                if (freezerApi) {
-                    setProcessFrozen(processRecord.pid, processRecord.uid, true)
-                } else {
-                    freezePid(processRecord.pid, processRecord.uid)
-                }
-            } else {
+        when (freezerConfigParam.getFreezeType()) {
+            0 -> {
+                Process.sendSignal(processRecord.pid, SIGSTOP)
+            }
+            1 -> {
+                Process.sendSignal(processRecord.pid, SIGTSTP)
+            }
+            2 -> {
+                setProcessFrozen(processRecord.pid, processRecord.uid, true)
+            }
+            3 -> {
+                freezePid(processRecord.pid, processRecord.uid)
+            }
+            4 -> {
                 freezePid(processRecord.pid)
             }
         }
     }
 
     fun unFreezer(processRecord: ProcessRecord) {
-        if (useKill) {
-            Process.sendSignal(processRecord.pid, CONT)
-        } else {
-            if (freezerVersion == 2) {
-                if (freezerApi) {
-                    setProcessFrozen(processRecord.pid, processRecord.uid, false)
-                } else {
-                    thawPid(processRecord.pid, processRecord.uid)
-                }
-            } else {
+        when (freezerConfigParam.getFreezeType()) {
+            0, 1 -> {
+                Process.sendSignal(processRecord.pid, SIGCONT)
+            }
+            2 -> {
+                setProcessFrozen(processRecord.pid, processRecord.uid, false)
+            }
+            3 -> {
+                thawPid(processRecord.pid, processRecord.uid)
+            }
+            4 -> {
                 thawPid(processRecord.pid)
             }
         }
+
     }
 
     fun freezeBinder(pid: Int, frozen: Boolean) {
@@ -161,37 +164,4 @@ class FreezeUtils(
         Process.killProcess(pid)
     }
 
-
-    fun loadFreezer(freezerConfig: FreezerConfig) {
-        val defaultFreezerVersion: String = freezerConfig.getFreezerVersion()
-        when (defaultFreezerVersion) {
-            FreezerConfig.API -> {
-                freezerApi = true
-                this.freezerVersion = 2
-            }
-            FreezerConfig.V2 -> {
-                freezerApi = false
-                this.freezerVersion = 2
-            }
-            FreezerConfig.V1 -> {
-                freezerApi = false
-                this.freezerVersion = 1
-            }
-            else -> {
-                freezerApi = false
-                this.freezerVersion = 1
-            }
-        }
-        stopSignal = freezerConfig.killSignal
-        useKill = freezerConfig.isUseKill
-        if (useKill) {
-            atsLogI("Kill -$stopSignal")
-        } else {
-            atsLogI("Freezer $freezerVersion")
-        }
-    }
-
-    init {
-        loadFreezer(freezerConfigParam)
-    }
 }

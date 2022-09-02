@@ -35,6 +35,8 @@
     <string name="kill_app">杀掉</string>
     <string name="freeze_app">冻结App</string>
     <string name="unfreeze_app">解冻App</string>
+    <string name="stop_service_when_freeze">冻结时停止Service</string>
+    <string name="freeze_method">freeze type</string>
 
 
 </resources>

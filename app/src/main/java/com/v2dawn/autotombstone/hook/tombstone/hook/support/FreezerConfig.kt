@@ -10,66 +10,32 @@ import com.v2dawn.autotombstone.hook.tombstone.support.MethodEnum
 
 class FreezerConfig(private val packageParam: PackageParam) {
 
-    companion object {
+    fun getSupportedFreezeType(): IntArray {
+        var t = intArrayOf(0, 1)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
 
-        public const val API = "Api"
-        public const val V2 = "V2"
-        public const val V1 = "V1"
+            t = t.plus(2)
+            packageParam.apply {
+                if (ClassEnum.CachedAppOptimizerClass
+                        .clazz.method {
+                            name = MethodEnum.isFreezerSupported
+                            emptyParam()
+                        }.get().invoke<Boolean>()!!
+                ) {
+                    t = t.plus(3)
+                }
+            }
+            t = t.plus(4)
+        }
+        return t
     }
 
-    private var isSupportV2 = false;
+    // 0 kill 19 ,1 kill 20 , 2 freezeapi ,3 freeze v2, 4 freezev1
 
-
-    private fun isConfigOn(configName: PrefsData<Boolean>): Boolean {
+    fun getFreezeType(): Int {
         packageParam.apply {
             return prefs(ConfigConst.COMMON_NAME)
-                .get(configName)
-        }
-    }
-
-    public val killSignal: Int
-        get() {
-            if (isConfigOn(ConfigConst.ENABLE_FORCE_KILL_19)) {
-                return 19
-            }
-            return if (isConfigOn(ConfigConst.ENABLE_FORCE_KILL_20)) {
-                20
-            } else 19
-        }
-
-    fun getFreezerVersion(): String {
-        if (isConfigOn(ConfigConst.ENABLE_FREEEZER_V2)) {
-            return V2
-        }
-        if (isConfigOn(ConfigConst.ENABLE_FREEEZER_V1)) {
-            return V1
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (isConfigOn(ConfigConst.ENABLE_FREEEZER_API)) {
-                return API
-            }
-
-            if (isSupportV2) {
-                return V2
-            }
-        }
-        return V1
-    }
-
-    public val isUseKill: Boolean
-        get() = isConfigOn(ConfigConst.ENABLE_FORCE_KILL_19) || isConfigOn(ConfigConst.ENABLE_FORCE_KILL_20)
-
-    fun isColorOs(): Boolean {
-        return isConfigOn(ConfigConst.ENABLE_COLOROS_OOM)
-    }
-
-    init {
-        packageParam.apply {
-            this@FreezerConfig.isSupportV2 = ClassEnum.CachedAppOptimizerClass
-                .clazz.method {
-                    name = MethodEnum.isFreezerSupported
-                    emptyParam()
-                }.get().invoke<Boolean>()!!
+                .get(ConfigConst.FREEZE_TYPE)
         }
     }
 

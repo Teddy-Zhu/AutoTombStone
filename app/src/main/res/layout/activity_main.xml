@@ -1,4 +1,5 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -39,12 +40,12 @@
             android:tooltipText="重启系统" />
 
         <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/github_btn"
             style="?android:attr/selectableItemBackgroundBorderless"
             android:layout_width="27dp"
             android:layout_height="27dp"
             android:layout_marginEnd="5dp"
             android:alpha="0.85"
-            android:id="@+id/github_btn"
             android:src="@mipmap/ic_github"
             android:tint="@color/colorTextGray" />
     </LinearLayout>
@@ -214,6 +215,7 @@
                     android:text="配置App规则"
                     android:textColor="@color/colorTextGray"
                     android:textSize="15sp" />
+
                 <TextView
                     android:id="@+id/app_debug_background"
                     android:layout_width="match_parent"
@@ -266,54 +268,42 @@
                         android:textColor="@color/colorTextGray"
                         android:textSize="12sp" />
                 </LinearLayout>
+
                 <com.v2dawn.autotombstone.ui.view.MaterialSwitch
                     android:id="@+id/enable_debug"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/enable_debug"
-                    android:textAllCaps="false"
-                    android:textColor="@color/colorTextGray"
-                    android:textSize="15sp" />
-                <com.v2dawn.autotombstone.ui.view.MaterialSwitch
-                    android:id="@+id/kill_19"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/force_kill_19"
-                    android:textAllCaps="false"
-                    android:textColor="@color/colorTextGray"
-                    android:textSize="15sp" />
-                <com.v2dawn.autotombstone.ui.view.MaterialSwitch
-                    android:id="@+id/kill_20"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/force_kill_20"
-                    android:textAllCaps="false"
-                    android:textColor="@color/colorTextGray"
-                    android:textSize="15sp" />
-                <com.v2dawn.autotombstone.ui.view.MaterialSwitch
-                    android:id="@+id/freezer_api"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/use_freezer_api"
+                    android:layout_marginLeft="13dp"
+                    android:layout_marginRight="13dp"
                     android:textAllCaps="false"
                     android:textColor="@color/colorTextGray"
                     android:textSize="15sp" />
 
-
                 <com.v2dawn.autotombstone.ui.view.MaterialSwitch
-                    android:id="@+id/freezer_v2"
+                    android:id="@+id/enable_stopservice"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/use_freezer_v2"
+                    android:text="@string/stop_service_when_freeze"
                     android:textAllCaps="false"
+                    android:layout_marginLeft="13dp"
+                    android:layout_marginRight="13dp"
                     android:textColor="@color/colorTextGray"
                     android:textSize="15sp" />
-                <com.v2dawn.autotombstone.ui.view.MaterialSwitch
-                    android:id="@+id/freezer_v1"
+
+                <TextView
+                    android:id="@+id/freeze_type_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/use_freezer_v1"
-                    android:textAllCaps="false"
+                    android:layout_marginLeft="13dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginRight="13dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_button_round"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:singleLine="true"
+                    android:text="@string/freeze_method"
                     android:textColor="@color/colorTextGray"
                     android:textSize="15sp" />
 
@@ -391,8 +381,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="15dp"
-                android:layout_marginRight="15dp"
                 android:layout_marginTop="10dp"
+                android:layout_marginRight="15dp"
                 android:layout_marginBottom="10dp"
                 android:background="@drawable/bg_permotion_round"
                 android:gravity="center|start"

@@ -3,15 +3,15 @@
 package com.v2dawn.autotombstone.ui.activity
 
 import android.content.ComponentName
-import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.IAtsConfigService
 import android.os.IBinder
-import android.os.PowerManager
 import android.util.Log
 import androidx.core.view.isVisible
+import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.YukiHookAPI
+import com.highcapable.yukihookapi.hook.factory.classOf
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.factory.modulePrefs
 import com.highcapable.yukihookapi.hook.type.java.StringType
@@ -19,18 +19,10 @@ import com.v2dawn.autotombstone.BuildConfig
 import com.v2dawn.autotombstone.R
 import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.databinding.ActivityMainBinding
-import com.android.server.AtsConfigService
-import com.highcapable.yukihookapi.hook.factory.classOf
-import com.topjohnwu.superuser.Shell
-import com.topjohnwu.superuser.ShellUtils
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogE
-import com.v2dawn.autotombstone.hook.tombstone.support.atsLogI
-import com.v2dawn.autotombstone.hook.tombstone.support.atsLogW
 import com.v2dawn.autotombstone.ui.activity.base.BaseActivity
-import com.v2dawn.autotombstone.utils.factory.navigate
-import com.v2dawn.autotombstone.utils.factory.showDialog
-import com.v2dawn.autotombstone.utils.factory.toast
+import com.v2dawn.autotombstone.utils.factory.*
 
 
 class MainActivity : BaseActivity<ActivityMainBinding>() {
@@ -47,7 +39,16 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         private const val pendingFlag = ""
 
         var atsConfigService: IAtsConfigService? = null
+
+        val allFreezeTypes = hashMapOf<Int, String>().apply {
+            put(0, "kill 19")
+            put(1, "kill 20")
+            put(2, "freeze api")
+            put(3, "freeze v2")
+            put(4, "freeze v1")
+        }
     }
+
 
     private val prefsListeners =
         hashMapOf<String, SharedPreferences.OnSharedPreferenceChangeListener>()
@@ -76,7 +77,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             binding.appDebugBackground.setOnClickListener {
                 showDialog {
                     title = "后台运行Apps"
-                    msg = getAtsService().queryBackgroundApps().joinToString(separator="\n")
+                    msg = getAtsService().queryBackgroundApps().joinToString(separator = "\n")
                     confirmButton(text = "我知道了") { cancel() }
                     noCancelable()
                 }
@@ -87,35 +88,39 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         binding.enableDebug.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_MODULE_LOG, checked)
         }
-        binding.kill19.isChecked =
-            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FORCE_KILL_19)
+        binding.enableStopservice.isChecked =
+            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.STOP_SERVICE)
 
-        binding.kill19.setOnCheckedChangeListener { _, checked ->
-            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FORCE_KILL_19, checked)
+        binding.enableStopservice.setOnCheckedChangeListener { _, checked ->
+            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.STOP_SERVICE, checked)
         }
-        binding.kill20.isChecked =
-            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FORCE_KILL_20)
 
-        binding.kill20.setOnCheckedChangeListener { _, checked ->
-            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FORCE_KILL_20, checked)
-        }
-        binding.freezerApi.isChecked =
-            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_API)
-        binding.freezerApi.setOnCheckedChangeListener { _, checked ->
-            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_API, checked)
-        }
-        binding.freezerV2.isChecked =
-            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_V2)
+        val supported = getAtsService().supportFreezeType
 
-        binding.freezerV2.setOnCheckedChangeListener { _, checked ->
-            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_V2, checked)
+        val items = arrayListOf<FreezeTypeItem>()
+        allFreezeTypes.filter { supported.contains(it.key) }.forEach {
+            items.add(FreezeTypeItem(it.key, it.value))
         }
-        binding.freezerV1.isChecked =
-            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_FREEEZER_V1)
 
-        binding.freezerV1.setOnCheckedChangeListener { _, checked ->
-            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_FREEEZER_V1, checked)
+
+
+        binding.freezeTypeStatus.text =
+            "${getString(R.string.freeze_method)} [${
+                allFreezeTypes[modulePrefs.name(ConfigConst.COMMON_NAME)
+                    .get(ConfigConst.FREEZE_TYPE)]
+            }]"
+        binding.freezeTypeStatus.setOnClickListener {
+            showCommonPopup(
+                it,
+                items,
+                selected = modulePrefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.FREEZE_TYPE)
+            ) { _: Int, t: FreezeTypeItem ->
+                modulePrefs.name(ConfigConst.COMMON_NAME).put(ConfigConst.FREEZE_TYPE, t.type)
+                binding.freezeTypeStatus.text =
+                    "${getString(R.string.freeze_method)} [${t.text}]"
+            }
         }
+
 
         val confs = ArrayList<String>().apply {
             add(ConfigConst.COMMON_NAME)
@@ -133,6 +138,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             prefsListeners[conf] = l1
             modulePrefs(conf).registerChangeListener(l1)
         }
+
+    }
+
+    class FreezeTypeItem(val type: Int, text: String) : PopUpItem(text) {
 
     }
 
