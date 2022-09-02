@@ -57,6 +57,7 @@ class AppStateChangeExecutor(
     private val acService: Any
 
     private val executor: ScheduledExecutorService = Executors.newScheduledThreadPool(4)
+    val reCheckAppTask: ScheduledFuture<*>?
 
     companion object {
 
@@ -65,31 +66,18 @@ class AppStateChangeExecutor(
         val TYPE_NONE = 2
 
         var instance: AppStateChangeExecutor? = null
-        val freezedApps = hashSetOf<String>()
+        val freezedApps = Collections.synchronizedMap(hashMapOf<String, Long>())
 
         val hasOverlayUiPackages = hashSetOf<String>()
         val hasAudioFocusPackages = hashSetOf<String>()
 
         const val DELAY_TIME: Long = 3000
         const val FREEZE_DELAY_TIME: Long = 3000
+
+        const val DELAY_RECHECK_TIME: Long = 600000
         private val SYS_SUPPORTS_SCHEDGROUPS = File("/dev/cpuctl/tasks").exists()
         private var OP_WAKE_LOCK = 40
         private var STANDBY_BUCKET_NEVER = 50
-
-        fun getBackgroundIndex(packageName: String): Int {
-            var total: Int = freezedApps.size
-            for (pkg in freezedApps) {
-                if (freezedApps.contains(pkg)) {
-                    continue
-                }
-                total -= if (packageName == pkg) {
-                    return total
-                } else {
-                    1
-                }
-            }
-            return total
-        }
 
     }
 
@@ -413,7 +401,7 @@ class AppStateChangeExecutor(
         val isWhiteApp = whiteApps.contains(packageName)
 
         if (!isWhiteApp) {
-            freezedApps.add(packageName)
+            freezedApps[packageName] = System.currentTimeMillis()
         }
 
         if (makeIdle && !isWhiteApp) {
@@ -874,5 +862,26 @@ class AppStateChangeExecutor(
                 useOriginMethod = false
             }
         }
+
+
+        reCheckAppTask = executor.scheduleAtFixedRate(
+            {
+                val enable: Boolean
+                packageParam.apply {
+                    enable = prefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_RECHECK_APP)
+                }
+                if (!enable) {
+                    return@scheduleAtFixedRate
+                }
+                val current = System.currentTimeMillis()
+                freezedApps.forEach {
+                    if ((it.value - current) < 2 * DELAY_RECHECK_TIME) {
+                        atsLogD("${it.key} refreeze within ${DELAY_RECHECK_TIME / 60 / 1000} min")
+                        unControlAppWait(it.key)
+                        controlApp(it.key)
+                    }
+                }
+            }, DELAY_RECHECK_TIME, DELAY_RECHECK_TIME, TimeUnit.MILLISECONDS
+        )
     }
 }

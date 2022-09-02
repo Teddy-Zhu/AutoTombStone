@@ -12,6 +12,8 @@ object ConfigConst {
     val FREEZE_TYPE = PrefsData("freezeType", 1)
     val STOP_SERVICE = PrefsData("stopService", false)
 
+    val ENABLE_RECHECK_APP = PrefsData("refreeze_task", false)
+
     //file white_apps
     val WHITE_APPS_NAME = "white_apps"
     val WHITE_APPS = PrefsData(WHITE_APPS_NAME, setOf<String>())

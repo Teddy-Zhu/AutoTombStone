@@ -114,7 +114,7 @@ class AtsConfigService(val context: Context, val appStateChangeExecutor: AppStat
 
     override fun queryBackgroundApps(): MutableList<String> {
         return arrayListOf<String>().apply {
-            addAll(AppStateChangeExecutor.freezedApps)
+            addAll(AppStateChangeExecutor.freezedApps.keys)
         }
     }
 
