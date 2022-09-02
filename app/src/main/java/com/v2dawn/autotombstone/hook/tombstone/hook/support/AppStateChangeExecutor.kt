@@ -58,6 +58,7 @@ class AppStateChangeExecutor(
 
     private val executor: ScheduledExecutorService = Executors.newScheduledThreadPool(4)
     var reCheckAppTask: ScheduledFuture<*>? = null
+
     companion object {
 
         val TYPE_RELEASE = 0
@@ -818,7 +819,8 @@ class AppStateChangeExecutor(
         val recheckInterval: Long
         packageParam.apply {
             enable = prefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_RECHECK_APP)
-            recheckInterval = prefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_RECHECK_APP_TIME)
+            recheckInterval =
+                prefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_RECHECK_APP_TIME)
         }
         if (!enable) {
             return
@@ -829,7 +831,7 @@ class AppStateChangeExecutor(
             {
                 val current = System.currentTimeMillis()
                 freezedApps.forEach {
-                    if ((it.value - current) < 2 * recheckInterval) {
+                    if ((it.value - current) < 2 * recheckInterval * 1000) {
                         atsLogD("${it.key} refreeze within ${recheckInterval}s")
                         unControlAppWait(it.key)
                         controlApp(it.key)
