@@ -37,5 +37,10 @@
     <string name="unfreeze_app">UnFreeze App</string>
     <string name="stop_service_when_freeze">stop services when freeze</string>
     <string name="freeze_method">freeze type</string>
+    <string name="refreeze_task">refresh app task</string>
+    <string name="second">s</string>
+    <string name="current">current</string>
+    <string name="cureent_delay_freeze_time">当前延迟冻结时间为</string>
+    <string name="current_delay_refreeze_time">当前延迟重新冻结时间为</string>
 
 </resources>

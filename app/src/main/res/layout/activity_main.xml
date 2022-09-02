@@ -279,6 +279,60 @@
                     android:textColor="@color/colorTextGray"
                     android:textSize="15sp" />
 
+
+                <androidx.appcompat.widget.AppCompatSeekBar
+                    android:id="@+id/delay_freeze_time"
+                    android:layout_width="match_parent"
+                    android:layout_height="30dp"
+                    android:max="60"
+                    android:min="0"
+                    android:progress="5" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingTop="5dp"
+                    android:paddingBottom="15dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="5dp"
+                        android:alpha="0.75"
+                        android:ellipsize="end"
+                        android:gravity="center"
+                        android:singleLine="true"
+                        android:text="@string/cureent_delay_freeze_time"
+                        android:textColor="@color/colorTextGray"
+                        android:textSize="13.5sp" />
+
+                    <TextView
+                        android:id="@+id/delay_freeze_time_val"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:gravity="center"
+                        android:maxWidth="100dp"
+                        android:singleLine="true"
+                        android:text="4"
+                        android:textColor="@color/colorTextGray"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:gravity="center"
+                        android:maxWidth="100dp"
+                        android:singleLine="true"
+                        android:text="@string/second"
+                        android:textColor="@color/colorTextGray"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
                 <com.v2dawn.autotombstone.ui.view.MaterialSwitch
                     android:id="@+id/enable_stopservice"
                     android:layout_width="match_parent"
@@ -290,6 +344,69 @@
                     android:textColor="@color/colorTextGray"
                     android:textSize="15sp" />
 
+                <com.v2dawn.autotombstone.ui.view.MaterialSwitch
+                    android:id="@+id/enable_refresh_task"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/refreeze_task"
+                    android:textAllCaps="false"
+                    android:layout_marginLeft="13dp"
+                    android:layout_marginRight="13dp"
+                    android:textColor="@color/colorTextGray"
+                    android:textSize="15sp" />
+
+                <androidx.appcompat.widget.AppCompatSeekBar
+                    android:id="@+id/refreeze_time"
+                    android:layout_width="match_parent"
+                    android:layout_height="30dp"
+                    android:max="1000"
+                    android:min="60"
+                    android:progress="600" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingTop="5dp"
+                    android:paddingBottom="15dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="5dp"
+                        android:alpha="0.75"
+                        android:ellipsize="end"
+                        android:gravity="center"
+                        android:singleLine="true"
+                        android:text="@string/current_delay_refreeze_time"
+                        android:textColor="@color/colorTextGray"
+                        android:textSize="13.5sp" />
+
+                    <TextView
+                        android:id="@+id/delay_refreeze_time_val"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:gravity="center"
+                        android:maxWidth="100dp"
+                        android:singleLine="true"
+                        android:text="4"
+                        android:textColor="@color/colorTextGray"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:gravity="center"
+                        android:maxWidth="100dp"
+                        android:singleLine="true"
+                        android:text="@string/second"
+                        android:textColor="@color/colorTextGray"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
                 <TextView
                     android:id="@+id/freeze_type_status"
                     android:layout_width="match_parent"

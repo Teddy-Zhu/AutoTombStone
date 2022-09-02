@@ -57,8 +57,7 @@ class AppStateChangeExecutor(
     private val acService: Any
 
     private val executor: ScheduledExecutorService = Executors.newScheduledThreadPool(4)
-    val reCheckAppTask: ScheduledFuture<*>?
-
+    var reCheckAppTask: ScheduledFuture<*>? = null
     companion object {
 
         val TYPE_RELEASE = 0
@@ -71,10 +70,6 @@ class AppStateChangeExecutor(
         val hasOverlayUiPackages = hashSetOf<String>()
         val hasAudioFocusPackages = hashSetOf<String>()
 
-        const val DELAY_TIME: Long = 3000
-        const val FREEZE_DELAY_TIME: Long = 3000
-
-        const val DELAY_RECHECK_TIME: Long = 600000
         private val SYS_SUPPORTS_SCHEDGROUPS = File("/dev/cpuctl/tasks").exists()
         private var OP_WAKE_LOCK = 40
         private var STANDBY_BUCKET_NEVER = 50
@@ -147,6 +142,10 @@ class AppStateChangeExecutor(
                 return true
             }
 
+            val delayTime: Long
+            packageParam.apply {
+                delayTime = prefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.DELAY_FREEZE_TIME)
+            }
             timerMap[packageName] = executor.schedule(Callable {
                 timerMap.remove(packageName)
 
@@ -154,8 +153,8 @@ class AppStateChangeExecutor(
                     check(packageName, type)
                 }
 
-            }, DELAY_TIME, TimeUnit.MILLISECONDS)
-
+            }, delayTime, TimeUnit.SECONDS)
+            atsLogD("[${packageName}] delay check $delayTime s")
         }
 
         return true
@@ -635,10 +634,6 @@ class AppStateChangeExecutor(
         return activityManagerService.isAppForeground(uid)
     }
 
-    private fun allowBackgroundStart() {
-
-    }
-
     /**
      * by cpuset
      */
@@ -798,8 +793,50 @@ class AppStateChangeExecutor(
         packageParam.apply {
             atsLogI("reload config:$name,key:$key")
             prefs.name(name).clearCache(key)
+
+            if (key == ConfigConst.ENABLE_RECHECK_APP.key || key == ConfigConst.ENABLE_RECHECK_APP_TIME.key) {
+                reCheckTaskInit()
+            }
 //                    prefs.name(kv[0]).clearCache()
         }
+    }
+
+    private fun cancelReCheckTask() {
+        if (reCheckAppTask != null) {
+            atsLogD("cancel old refreeze task")
+            if (!reCheckAppTask!!.isCancelled) {
+                reCheckAppTask!!.cancel(true)
+            }
+        }
+        reCheckAppTask = null
+    }
+
+    private fun reCheckTaskInit() {
+        cancelReCheckTask()
+
+        val enable: Boolean
+        val recheckInterval: Long
+        packageParam.apply {
+            enable = prefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_RECHECK_APP)
+            recheckInterval = prefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_RECHECK_APP_TIME)
+        }
+        if (!enable) {
+            return
+        }
+        atsLogD("start refreeze task ,time interval:${recheckInterval}s")
+
+        reCheckAppTask = executor.scheduleAtFixedRate(
+            {
+                val current = System.currentTimeMillis()
+                freezedApps.forEach {
+                    if ((it.value - current) < 2 * recheckInterval) {
+                        atsLogD("${it.key} refreeze within ${recheckInterval}s")
+                        unControlAppWait(it.key)
+                        controlApp(it.key)
+                    }
+                }
+            }, recheckInterval, recheckInterval, TimeUnit.SECONDS
+        )
     }
 
     init {
@@ -863,25 +900,7 @@ class AppStateChangeExecutor(
             }
         }
 
+        reCheckTaskInit()
 
-        reCheckAppTask = executor.scheduleAtFixedRate(
-            {
-                val enable: Boolean
-                packageParam.apply {
-                    enable = prefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_RECHECK_APP)
-                }
-                if (!enable) {
-                    return@scheduleAtFixedRate
-                }
-                val current = System.currentTimeMillis()
-                freezedApps.forEach {
-                    if ((it.value - current) < 2 * DELAY_RECHECK_TIME) {
-                        atsLogD("${it.key} refreeze within ${DELAY_RECHECK_TIME / 60 / 1000} min")
-                        unControlAppWait(it.key)
-                        controlApp(it.key)
-                    }
-                }
-            }, DELAY_RECHECK_TIME, DELAY_RECHECK_TIME, TimeUnit.MILLISECONDS
-        )
     }
 }

@@ -36,7 +36,12 @@
     <string name="freeze_app">冻结App</string>
     <string name="unfreeze_app">解冻App</string>
     <string name="stop_service_when_freeze">冻结时停止Service</string>
-    <string name="freeze_method">freeze type</string>
+    <string name="freeze_method">冻结方式</string>
+    <string name="refreeze_task">压制后定时重压</string>
+    <string name="second">秒</string>
+    <string name="current">current</string>
+    <string name="cureent_delay_freeze_time">当前延迟冻结时间为</string>
+    <string name="current_delay_refreeze_time">当前延迟重新冻结时间为</string>
 
 
 </resources>

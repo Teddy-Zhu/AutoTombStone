@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.IAtsConfigService
 import android.os.IBinder
 import android.util.Log
+import android.widget.SeekBar
 import androidx.core.view.isVisible
 import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.YukiHookAPI
@@ -94,15 +95,18 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         binding.enableStopservice.setOnCheckedChangeListener { _, checked ->
             modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.STOP_SERVICE, checked)
         }
+        binding.enableRefreshTask.isChecked =
+            modulePrefs(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_RECHECK_APP)
 
+        binding.enableRefreshTask.setOnCheckedChangeListener { _, checked ->
+            modulePrefs(ConfigConst.COMMON_NAME).put(ConfigConst.ENABLE_RECHECK_APP, checked)
+        }
         val supported = getAtsService().supportFreezeType
 
         val items = arrayListOf<FreezeTypeItem>()
         allFreezeTypes.filter { supported.contains(it.key) }.forEach {
             items.add(FreezeTypeItem(it.key, it.value))
         }
-
-
 
         binding.freezeTypeStatus.text =
             "${getString(R.string.freeze_method)} [${
@@ -120,7 +124,39 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                     "${getString(R.string.freeze_method)} [${t.text}]"
             }
         }
+        binding.delayFreezeTime.progress =
+            modulePrefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.DELAY_FREEZE_TIME).toInt()
+        binding.delayFreezeTimeVal.text = "${binding.delayFreezeTime.progress}"
+        binding.delayFreezeTime.setOnSeekBarChangeListener(object :
+            SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                binding.delayFreezeTimeVal.text = "$progress"
+            }
 
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                modulePrefs.name(ConfigConst.COMMON_NAME)
+                    .put(ConfigConst.DELAY_FREEZE_TIME, seekBar.progress.toLong())
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        binding.refreezeTime.progress =
+            modulePrefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_RECHECK_APP_TIME).toInt()
+        binding.delayRefreezeTimeVal.text = "${binding.refreezeTime.progress}"
+        binding.refreezeTime.setOnSeekBarChangeListener(object :
+            SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                binding.delayRefreezeTimeVal.text = "$progress"
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                modulePrefs.name(ConfigConst.COMMON_NAME)
+                    .put(ConfigConst.ENABLE_RECHECK_APP_TIME, seekBar.progress.toLong())
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+        })
 
         val confs = ArrayList<String>().apply {
             add(ConfigConst.COMMON_NAME)
