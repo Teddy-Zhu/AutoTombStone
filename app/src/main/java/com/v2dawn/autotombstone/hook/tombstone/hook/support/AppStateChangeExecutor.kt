@@ -827,14 +827,18 @@ class AppStateChangeExecutor(
         }
         atsLogD("start refreeze task ,time interval:${recheckInterval}s")
 
+        val checkTime = 2 * recheckInterval * 1000
         reCheckAppTask = executor.scheduleAtFixedRate(
             {
                 val current = System.currentTimeMillis()
-                freezedApps.forEach {
-                    if ((current - it.value) <  recheckInterval * 1000) {
-                        atsLogD("${it.key} refreeze within ${recheckInterval}s")
-                        unControlAppWait(it.key)
-                        controlApp(it.key)
+                for (freezedApp in freezedApps) {
+                    val interval = current - freezedApp.value
+                    if (interval in (recheckInterval + 1) until checkTime) {
+                        atsLogD("[${freezedApp.key}] refreeze within ${interval}ms")
+                        unControlAppWait(freezedApp.key)
+                        controlApp(freezedApp.key)
+                    }else{
+                        atsLogD("${freezedApp.key} ignored because time interval is ${interval}ms")
                     }
                 }
             }, recheckInterval, recheckInterval, TimeUnit.SECONDS
