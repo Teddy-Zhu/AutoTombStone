@@ -829,12 +829,13 @@ class AppStateChangeExecutor(
         atsLogD("start refreeze task ,time interval:${recheckInterval}s")
 
         val checkTime = 2 * recheckInterval * 1000
-        reCheckAppTask = executor.schedule(
+        reCheckAppTask = executor.scheduleWithFixedDelay(
             {
 
                 val current = System.currentTimeMillis()
+                val copyMap = freezedApps.toMutableMap()
                 atsLogD("freezeApps size :${freezedApps.size}")
-                for (freezedApp in freezedApps) {
+                for (freezedApp in copyMap) {
 
                     try {
                         val interval = current - freezedApp.value
@@ -852,7 +853,7 @@ class AppStateChangeExecutor(
                 atsLogD("exe task end")
 
 
-            }, recheckInterval, TimeUnit.SECONDS
+            }, recheckInterval, recheckInterval, TimeUnit.SECONDS
         )
     }
 
