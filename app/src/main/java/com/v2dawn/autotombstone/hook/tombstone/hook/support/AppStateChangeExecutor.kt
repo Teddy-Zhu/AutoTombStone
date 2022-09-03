@@ -248,11 +248,12 @@ class AppStateChangeExecutor(
     }
 
     private fun clearSchedule(packageName: String, interrupt: Boolean = false) {
-        atsLogD("[$packageName] clear schedule")
         var scheduledFuture = timerMap.getOrDefault(packageName, null)
 
         if (scheduledFuture != null) {
             if (!scheduledFuture.isDone && !scheduledFuture.isCancelled) {
+                atsLogD("[$packageName] clear schedule")
+
                 scheduledFuture.cancel(interrupt)
             }
         }
@@ -828,20 +829,30 @@ class AppStateChangeExecutor(
         atsLogD("start refreeze task ,time interval:${recheckInterval}s")
 
         val checkTime = 2 * recheckInterval * 1000
-        reCheckAppTask = executor.scheduleAtFixedRate(
+        reCheckAppTask = executor.schedule(
             {
+
                 val current = System.currentTimeMillis()
+                atsLogD("freezeApps size :${freezedApps.size}")
                 for (freezedApp in freezedApps) {
-                    val interval = current - freezedApp.value
-                    if (interval in (recheckInterval + 1) until checkTime) {
-                        atsLogD("[${freezedApp.key}] refreeze within ${interval}ms")
-                        unControlAppWait(freezedApp.key)
-                        controlApp(freezedApp.key)
-                    }else{
-                        atsLogD("${freezedApp.key} ignored because time interval is ${interval}ms")
+
+                    try {
+                        val interval = current - freezedApp.value
+                        if (interval in (recheckInterval + 1) until checkTime) {
+                            atsLogD("[${freezedApp.key}] refreeze within ${interval}ms")
+                            unControlAppWait(freezedApp.key)
+                            controlApp(freezedApp.key)
+                        } else {
+                            atsLogD("${freezedApp.key} ignored because time interval is ${interval}ms")
+                        }
+                    } catch (e: Exception) {
+                        atsLogE("exe task error", e = e)
                     }
                 }
-            }, recheckInterval, recheckInterval, TimeUnit.SECONDS
+                atsLogD("exe task end")
+
+
+            }, recheckInterval, TimeUnit.SECONDS
         )
     }
 
