@@ -831,7 +831,7 @@ class AppStateChangeExecutor(
             {
                 val current = System.currentTimeMillis()
                 freezedApps.forEach {
-                    if ((it.value - current) < 2 * recheckInterval * 1000) {
+                    if ((current - it.value) <  recheckInterval * 1000) {
                         atsLogD("${it.key} refreeze within ${recheckInterval}s")
                         unControlAppWait(it.key)
                         controlApp(it.key)
