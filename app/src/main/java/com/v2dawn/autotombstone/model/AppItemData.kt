@@ -20,9 +20,7 @@ data class AppItemData(
     var isImportantSystemApp: Boolean,
     var isBlackApp: Boolean,
     var isWhiteApp: Boolean,
-    var applicationInfo: ApplicationInfo,
     var processes: HashSet<String> = HashSet(),
-    var packageInfo: PackageInfo? = null,
 
     ) : Serializable {
 
@@ -53,6 +51,8 @@ data class AppItemData(
     }
 
     override fun toString(): String {
-        return "AppItemData(name='$name', label='$label', packageName='$packageName', icon=$icon, inFreeze=$inFreeze, enable=$enable, priority=$priority, isXposedModule=$isXposedModule, isSystem=$isSystem, isImportantSystemApp=$isImportantSystemApp, processes=$processes)"
+        return "AppItemData(name='$name', label='$label', packageName='$packageName', icon=$icon, inFreeze=$inFreeze, priority=$priority, isXposedModule=$isXposedModule, isSystem=$isSystem, isImportantSystemApp=$isImportantSystemApp, isBlackApp=$isBlackApp, isWhiteApp=$isWhiteApp, processes=$processes, enable=$enable)"
     }
+
+
 }

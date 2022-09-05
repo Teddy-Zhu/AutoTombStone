@@ -40,7 +40,12 @@
     <string name="refreeze_task">refresh app task</string>
     <string name="second">s</string>
     <string name="current">current</string>
-    <string name="cureent_delay_freeze_time">当前延迟冻结时间为</string>
-    <string name="current_delay_refreeze_time">当前延迟重新冻结时间为</string>
+    <string name="cureent_delay_freeze_time">start freeze delay time is</string>
+    <string name="current_delay_refreeze_time">refreeze time is </string>
+    <string name="stop_service_mode">stop services mode</string>
+    <string name="start_pause_delay_time_is">start pause delay time is</string>
+    <string name="wait_loading">Data loading, slow initialization for the first time,\n please wait patiently</string>
+    <string name="found_nothing">can\'t find anything~</string>
+    <string name="found_nothing_refresh">there is nothing~ \n please click the sync button in the upper right corner to get app data</string>
 
 </resources>

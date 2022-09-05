@@ -146,7 +146,7 @@ class AppStateChangeExecutor(
 
             val delayTime: Long
             packageParam.apply {
-                delayTime = prefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.DELAY_FREEZE_TIME)
+                delayTime = prefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.DELAY_PAUSE_TIME)
             }
             timerMap[packageName] = executor.schedule(Callable {
                 timerMap.remove(packageName)
@@ -381,10 +381,12 @@ class AppStateChangeExecutor(
             val killProcessList: Set<String>
             val whiteProcessList: Set<String>
             val whiteApps: Set<String>
+            val stopMode: Int
             packageParam.apply {
                 killProcessList = queryKillProcessesList()
                 whiteProcessList = queryWhiteProcessesList()
                 whiteApps = queryWhiteAppList()
+                stopMode = prefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.STOP_SERVICE_MODE)
             }
 
             val targetProcessRecords: List<ProcessRecord> =
@@ -407,7 +409,7 @@ class AppStateChangeExecutor(
                 setAppIdle(packageName, true)
             }
 
-//        val delayFreezerProcesses = hashSetOf<ProcessRecord>()
+            val delayFreezerProcesses = hashSetOf<ProcessRecord>()
             // 遍历目标进程
             for (targetProcessRecord in targetProcessRecords) {
                 // 应用又进入前台了
@@ -451,7 +453,15 @@ class AppStateChangeExecutor(
 
                 if (stopService) {
 //                needStopProcesses.add(targetProcessRecord)
-                    stopServiceLocked(targetProcessRecord)
+
+                    when (stopMode) {
+                        1 -> {
+                            stopServiceLockedDirectMode(targetProcessRecord)
+                        }
+                        2 -> {
+                            stopServiceLockedApiMode(targetProcessRecord)
+                        }
+                    }
                 }
 
                 // 如果杀死进程列表包含进程名
@@ -464,9 +474,9 @@ class AppStateChangeExecutor(
                 } else {
                     if (freeze) {
                         atsLogD("[$processName] freezer")
-                        freezeUtils.freezer(targetProcessRecord)
+//                        freezeUtils.freezer(targetProcessRecord)
 
-//                    delayFreezerProcesses.add(targetProcessRecord)
+                        delayFreezerProcesses.add(targetProcessRecord)
                     }
                 }
 
@@ -475,13 +485,19 @@ class AppStateChangeExecutor(
                 if (wakeLock && !isWhiteApp) {
                     PowerManagerService.instance?.release(packageName)
                 }
+
+                if (delayFreezerProcesses.isNotEmpty()) {
+                    executor.schedule(
+                        {
+                            freezeProcess(delayFreezerProcesses)
+                        },
+                        prefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.DELAY_FREEZE_TIME),
+                        TimeUnit.MILLISECONDS
+                    )
+                }
+
             }
 
-//        if (delayFreezerProcesses.isNotEmpty()) {
-//            extraExecutor.schedule({
-//                freezeProcess(delayFreezerProcesses)
-//            }, FREEZE_DELAY_TIME, TimeUnit.MILLISECONDS)
-//        }
 
             if (makeIdle && !isWhiteApp) {
                 setAppIdle(packageName, true)
@@ -683,7 +699,7 @@ class AppStateChangeExecutor(
         }
     }
 
-    private fun stopServiceLocked_dep(processRecord: ProcessRecord) {
+    private fun stopServiceLockedApiMode(processRecord: ProcessRecord) {
         atsLogD("[${processRecord.processName}] try to stop services")
         activityManagerService.activeServices.activeServices.javaClass.method {
             name = "stopInBackgroundLocked"
@@ -691,7 +707,7 @@ class AppStateChangeExecutor(
         }.get(activityManagerService.activeServices.activeServices).call(processRecord.uid)
     }
 
-    private fun stopServiceLocked(processRecord: ProcessRecord) {
+    private fun stopServiceLockedDirectMode(processRecord: ProcessRecord) {
         stopServiceLocked(processRecord, false)
     }
 

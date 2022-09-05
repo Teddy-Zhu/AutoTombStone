@@ -13,10 +13,14 @@ object ConfigConst {
     val STOP_SERVICE = PrefsData("stopService", false)
 
     val ENABLE_RECHECK_APP = PrefsData("refreeze_task", true)
+
     //seconds
     val ENABLE_RECHECK_APP_TIME = PrefsData("refreeze_task_time", 600L)
+
     //seconds
-    val DELAY_FREEZE_TIME = PrefsData("delay_freeze_time", 10L)
+    val DELAY_FREEZE_TIME = PrefsData("delay_freeze_time", 4L)
+    val DELAY_PAUSE_TIME = PrefsData("delay_pause_time", 4L)
+    val STOP_SERVICE_MODE = PrefsData("stop_service_mode", 1)
 
     //file white_apps
     val WHITE_APPS_NAME = "white_apps"

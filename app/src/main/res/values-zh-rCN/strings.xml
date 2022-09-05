@@ -40,8 +40,13 @@
     <string name="refreeze_task">压制后定时重压</string>
     <string name="second">秒</string>
     <string name="current">current</string>
-    <string name="cureent_delay_freeze_time">当前延迟冻结时间为</string>
-    <string name="current_delay_refreeze_time">当前延迟重新冻结时间为</string>
+    <string name="cureent_delay_freeze_time">暂停App后延迟冻结时间为</string>
+    <string name="current_delay_refreeze_time">当前延迟暂停App时间为</string>
+    <string name="stop_service_mode">停止服务方式</string>
+    <string name="start_pause_delay_time_is">开始暂停App延迟时间为</string>
+    <string name="wait_loading">数据载入中，第一次初始化较慢，\n请耐心等待</string>
+    <string name="found_nothing">噫，竟然什么都没找到~</string>
+    <string name="found_nothing_refresh">噫，竟然什么都没有~\n请点击右上角同步按钮获取App数据</string>
 
 
 </resources>

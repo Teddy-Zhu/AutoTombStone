@@ -9,6 +9,8 @@ import android.os.IAtsConfigService
 import android.os.IBinder
 import android.util.Log
 import android.widget.SeekBar
+import android.widget.TextView
+import androidx.appcompat.widget.AppCompatSeekBar
 import androidx.core.view.isVisible
 import com.android.server.AtsConfigService
 import com.highcapable.yukihookapi.YukiHookAPI
@@ -16,6 +18,7 @@ import com.highcapable.yukihookapi.hook.factory.classOf
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.factory.modulePrefs
 import com.highcapable.yukihookapi.hook.type.java.StringType
+import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
 import com.v2dawn.autotombstone.BuildConfig
 import com.v2dawn.autotombstone.R
 import com.v2dawn.autotombstone.config.ConfigConst
@@ -124,39 +127,53 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                     "${getString(R.string.freeze_method)} [${t.text}]"
             }
         }
-        binding.delayFreezeTime.progress =
-            modulePrefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.DELAY_FREEZE_TIME).toInt()
-        binding.delayFreezeTimeVal.text = "${binding.delayFreezeTime.progress}"
-        binding.delayFreezeTime.setOnSeekBarChangeListener(object :
-            SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                binding.delayFreezeTimeVal.text = "$progress"
+        val stopServiceModeItems = arrayListOf<StopServiceModeItem>().apply {
+            add(StopServiceModeItem(1, "DirectMode"))
+            add(StopServiceModeItem(2, "ApiMode"))
+
+        }
+        binding.stopServiceMode.text =
+            "${getString(R.string.stop_service_mode)} [${
+                stopServiceModeItems.filter {
+                    it.type == modulePrefs.name(ConfigConst.COMMON_NAME)
+                        .get(ConfigConst.STOP_SERVICE_MODE)
+                }[0].text
+            }]"
+        binding.stopServiceMode.setOnClickListener {
+            showCommonPopup(
+                it,
+                stopServiceModeItems,
+                selected = stopServiceModeItems.indexOfFirst {
+                    it.type == modulePrefs.name(ConfigConst.COMMON_NAME)
+                        .get(ConfigConst.STOP_SERVICE_MODE)
+                }
+            ) { _: Int, t: StopServiceModeItem ->
+                modulePrefs.name(ConfigConst.COMMON_NAME).put(ConfigConst.STOP_SERVICE_MODE, t.type)
+                binding.stopServiceMode.text =
+                    "${getString(R.string.stop_service_mode)} [${t.text}]"
             }
+        }
 
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                modulePrefs.name(ConfigConst.COMMON_NAME)
-                    .put(ConfigConst.DELAY_FREEZE_TIME, seekBar.progress.toLong())
-            }
 
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-        })
+        initEvent(
+            binding.delayFreezeTime,
+            binding.delayFreezeTimeVal,
+            ConfigConst.COMMON_NAME,
+            ConfigConst.DELAY_FREEZE_TIME
+        )
+        initEvent(
+            binding.delayPauseTime,
+            binding.delayPauseTimeVal,
+            ConfigConst.COMMON_NAME,
+            ConfigConst.DELAY_PAUSE_TIME
+        )
+        initEvent(
+            binding.refreezeTime,
+            binding.delayRefreezeTimeVal,
+            ConfigConst.COMMON_NAME,
+            ConfigConst.ENABLE_RECHECK_APP_TIME
+        )
 
-        binding.refreezeTime.progress =
-            modulePrefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.ENABLE_RECHECK_APP_TIME).toInt()
-        binding.delayRefreezeTimeVal.text = "${binding.refreezeTime.progress}"
-        binding.refreezeTime.setOnSeekBarChangeListener(object :
-            SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                binding.delayRefreezeTimeVal.text = "$progress"
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                modulePrefs.name(ConfigConst.COMMON_NAME)
-                    .put(ConfigConst.ENABLE_RECHECK_APP_TIME, seekBar.progress.toLong())
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-        })
 
         val confs = ArrayList<String>().apply {
             add(ConfigConst.COMMON_NAME)
@@ -177,9 +194,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     }
 
-    class FreezeTypeItem(val type: Int, text: String) : PopUpItem(text) {
-
-    }
+    class FreezeTypeItem(val type: Int, text: String) : PopUpItem(text)
+    class StopServiceModeItem(val type: Int, text: String) : PopUpItem(text)
 
     fun getAtsService(): IAtsConfigService {
         if (atsConfigService == null) {
@@ -218,6 +234,32 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             }
             cancelButton()
         }
+    }
+
+    private fun initEvent(
+        appCompatSeekBar: AppCompatSeekBar,
+        valText: TextView,
+        configName: String,
+        key: PrefsData<Long>,
+    ) {
+
+        appCompatSeekBar.progress =
+            modulePrefs.name(configName).get(key).toInt()
+        valText.text = "${appCompatSeekBar.progress}"
+        appCompatSeekBar.setOnSeekBarChangeListener(object :
+            SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                valText.text = "$progress"
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                modulePrefs.name(configName)
+                    .put(key, seekBar.progress.toLong())
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+        })
+
     }
 
     private fun prefChange(configName: String, key: String) {

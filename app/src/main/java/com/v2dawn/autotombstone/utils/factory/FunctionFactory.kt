@@ -40,6 +40,8 @@ import com.topjohnwu.superuser.Shell
 import com.v2dawn.autotombstone.config.ConfigConst
 import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 import com.v2dawn.autotombstone.hook.tombstone.support.atsLogE
+import com.v2dawn.autotombstone.hook.tombstone.support.isImportantSystem
+import com.v2dawn.autotombstone.hook.tombstone.support.isSystem
 import com.v2dawn.autotombstone.model.AppItemData
 import com.v2dawn.autotombstone.utils.tool.SystemTool
 import java.io.ByteArrayOutputStream
@@ -587,16 +589,21 @@ fun Any?.delayedRun(ms: Long = 150, it: () -> Unit) =
 
 fun buildAppItemData(
     pm: PackageManager,
-    appInfo: ApplicationInfo,
+    appInfo: ApplicationInfo?,
     sysBlackApps: Set<String>,
     whiteApps: Set<String>,
     appItemData: AppItemData? = null,
-    freezeApps: Set<String>
+    freezeApps: Set<String>,
+    pkgName: String
 ): AppItemData {
-    val label: String = pm.originLabel(appInfo)
-    val pkgName: String = appInfo.packageName
-    val isSystem: Boolean = SystemTool.isSystem(appInfo)
-    val isImportSystem: Boolean = SystemTool.isImportantSystemApp(appInfo)
+    var applicationInfo = appInfo
+    if (applicationInfo == null) {
+        applicationInfo = pm.getApplicationInfo(pkgName, PackageManager.GET_META_DATA)
+    }
+    val label: String = pm.originLabel(applicationInfo)
+    val pkgName: String = applicationInfo.packageName
+    val isSystem: Boolean = applicationInfo.isSystem()
+    val isImportSystem: Boolean = applicationInfo.isImportantSystem()
     val isBlackApp: Boolean = sysBlackApps.contains(pkgName)
     val isWhiteApp: Boolean = whiteApps.contains(pkgName)
     val isFreeze: Boolean = freezeApps.contains(pkgName)
@@ -605,11 +612,10 @@ fun buildAppItemData(
         val newAppData = AppItemData(
             name = label,
             label = label,
-            applicationInfo = appInfo,
             isSystem = isSystem,
             isImportantSystemApp = isImportSystem,
             isXposedModule = SystemTool.isXposedModule(appInfo),
-            icon = appInfo.loadIcon(pm),
+            icon = applicationInfo.loadIcon(pm),
             packageName = pkgName,
             inFreeze = isFreeze,
             isBlackApp = isBlackApp,
@@ -620,11 +626,10 @@ fun buildAppItemData(
     } else {
         appItemData.name = label
         appItemData.label = label
-        appItemData.applicationInfo = appInfo
         appItemData.isSystem = isSystem
         appItemData.isImportantSystemApp = isImportSystem
-        appItemData.isXposedModule = SystemTool.isXposedModule(appInfo)
-        appItemData.icon = appInfo.loadIcon(pm)
+        appItemData.isXposedModule = SystemTool.isXposedModule(applicationInfo)
+        appItemData.icon = applicationInfo.loadIcon(pm)
         appItemData.packageName = pkgName
         appItemData.isBlackApp = isBlackApp
         appItemData.isWhiteApp = isWhiteApp

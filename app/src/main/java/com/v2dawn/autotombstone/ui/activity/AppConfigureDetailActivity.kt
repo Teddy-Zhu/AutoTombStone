@@ -56,7 +56,8 @@ class AppConfigureDetailActivity : BaseActivity<ActivityAppConfigDetailBinding>(
             getBlackApps(),
             getWhiteApps(),
             null,
-            freeApps
+            freeApps,
+            pkgName,
         )
 
         binding.titleBackIcon.setOnClickListener { onBackPressed() }

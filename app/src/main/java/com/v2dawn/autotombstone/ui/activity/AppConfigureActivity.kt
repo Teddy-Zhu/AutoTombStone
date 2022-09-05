@@ -57,6 +57,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
 
     private var freezeApps: Set<String> = setOf()
 
+    private var dataLoading: Boolean = true
     override fun onCreate() {
         /** 检查激活状态 */
         if (YukiHookAPI.Status.isXposedModuleActive.not()) {
@@ -130,7 +131,11 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                         binding.appWhiteSwitch.isEnabled = !bean.isImportantSystemApp
                         binding.adpAppIcon.setImageDrawable(bean.icon)
                         binding.adpAppName.text = bean.name
-                        binding.adpAppName.setTextColor(if (bean.inFreeze) getColor(R.color.red) else getColor(R.color.colorTextDark))
+                        binding.adpAppName.setTextColor(
+                            if (bean.inFreeze) getColor(R.color.red) else getColor(
+                                R.color.colorTextDark
+                            )
+                        )
                         binding.adpAppPkgName.text = bean.packageName
                         binding.sysImpApp.tag = bean.name
                         binding.sysApp.tag = bean.name
@@ -316,11 +321,12 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
 
         buildAppItemData(
             packageManager,
-            appFilteredData[position].applicationInfo,
+            null,
             getBlackApps(),
             getWhiteApps(),
             appFilteredData[position],
-            freezeApps
+            freezeApps,
+            appFilteredData[position].packageName
         )
         (binding.configListView.adapter as BaseAdapter).notifyDataSetChanged()
     }
@@ -387,12 +393,16 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
     }
 
     private fun refreshAppList(force: Boolean) {
-
+        dataLoading = true
         Observable.create { emitter: ObservableEmitter<List<AppItemData>> ->
+            var starttime = System.currentTimeMillis();
             loadApplicationInfos(packageManager, force)
+            Log.i(TAG, "loadApplicationInfos spend ${System.currentTimeMillis() - starttime}ms")
+            starttime = System.currentTimeMillis();
             val blackApps = getBlackApps()
             val whiteApps = getWhiteApps()
             val data: List<AppItemData> = buildCache(blackApps, whiteApps)
+            Log.i(TAG, "buildCache spend ${System.currentTimeMillis() - starttime}ms")
             emitter.onNext(data)
             emitter.onComplete()
         }
@@ -410,6 +420,7 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
                     Log.d(TAG, "reload data")
                     appConfigData.clear()
                     appConfigData.addAll(data)
+                    dataLoading = false
                     refreshAdapterResult()
                 }
             ) { throwable: Throwable? ->
@@ -428,7 +439,15 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
         val cache: MutableList<AppItemData> = ArrayList<AppItemData>()
         for (appInfo in getApps()!!) {
             val viewData =
-                buildAppItemData(packageManager, appInfo, sysBlackApps, whiteApps, null, freezeApps)
+                buildAppItemData(
+                    packageManager,
+                    appInfo,
+                    sysBlackApps,
+                    whiteApps,
+                    null,
+                    freezeApps,
+                    appInfo.packageName
+                )
             cache.add(viewData)
         }
         cache.sortBy { it.priority }
@@ -442,23 +461,16 @@ class AppConfigureActivity : BaseActivity<ActivityAppConfigBinding>() {
             if (filterText.isBlank()) "已找到 ${appFilteredData.size} 个 APP"
             else "“${filterText}” 匹配到 ${appFilteredData.size} 个结果"
         binding.configListNoDataView.apply {
-            text = if (appConfigData.isEmpty()) "噫，竟然什么都没有~\n请点击右上角同步按钮获取App数据" else "噫，竟然什么都没找到~"
+            text =
+                if (dataLoading) context.getString(R.string.wait_loading) else if (appConfigData.isEmpty()) context.getString(
+                    R.string.found_nothing_refresh
+                ) else context.getString(
+                    R.string.found_nothing
+                )
             isVisible = appFilteredData.isEmpty()
         }
     }
 
-    private fun loadProcessNames(appItemData: AppItemData) {
-
-        if (appItemData.packageInfo == null) {
-            val pkgInfo =
-                packageManager.getPackageInfo(appItemData.packageName, PackageManager.GET_SERVICES);
-            appItemData.packageInfo = pkgInfo;
-            appItemData.processes.clear()
-            for (service in pkgInfo.services) {
-                appItemData.processes.add(service.processName);
-            }
-        }
-    }
 
     /**
      * 当前结果下的图标数组

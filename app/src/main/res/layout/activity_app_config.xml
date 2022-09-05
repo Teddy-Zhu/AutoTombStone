@@ -42,7 +42,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="5dp"
                 android:singleLine="true"
-                android:text="规则配置列表"
+                android:text="规则配置"
                 android:textColor="@color/colorTextGray"
                 android:textSize="19sp"
                 android:textStyle="bold" />

@@ -281,6 +281,59 @@
 
 
                 <androidx.appcompat.widget.AppCompatSeekBar
+                    android:id="@+id/delay_pause_time"
+                    android:layout_width="match_parent"
+                    android:layout_height="30dp"
+                    android:max="60"
+                    android:min="0"
+                    android:progress="5" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingTop="5dp"
+                    android:paddingBottom="15dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="5dp"
+                        android:alpha="0.75"
+                        android:ellipsize="end"
+                        android:gravity="center"
+                        android:singleLine="true"
+                        android:text="@string/start_pause_delay_time_is"
+                        android:textColor="@color/colorTextGray"
+                        android:textSize="13.5sp" />
+
+                    <TextView
+                        android:id="@+id/delay_pause_time_val"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:gravity="center"
+                        android:maxWidth="100dp"
+                        android:singleLine="true"
+                        android:text="4"
+                        android:textColor="@color/colorTextGray"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:gravity="center"
+                        android:maxWidth="100dp"
+                        android:singleLine="true"
+                        android:text="@string/second"
+                        android:textColor="@color/colorTextGray"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.AppCompatSeekBar
                     android:id="@+id/delay_freeze_time"
                     android:layout_width="match_parent"
                     android:layout_height="30dp"
@@ -341,6 +394,22 @@
                     android:textAllCaps="false"
                     android:layout_marginLeft="13dp"
                     android:layout_marginRight="13dp"
+                    android:textColor="@color/colorTextGray"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:id="@+id/stop_service_mode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="13dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginRight="13dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_button_round"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:singleLine="true"
+                    android:text="@string/stop_service_mode"
                     android:textColor="@color/colorTextGray"
                     android:textSize="15sp" />
 
