@@ -5,9 +5,9 @@ import com.v2dawn.autotombstone.hook.tombstone.support.ClassEnum
 
 
 class ProcessServiceRecord(val processServiceRecord: Any) {
-    val mExecutingServices: MutableList<ServiceRecord> = ArrayList()
+    private val mExecutingServices: MutableList<ServiceRecord> = ArrayList()
     public val mServices: MutableList<ServiceRecord> = ArrayList()
-    val mConnections: MutableList<ConnectionRecord> = ArrayList()
+    private val mConnections: MutableList<ConnectionRecord> = ArrayList()
     private var mHasForegroundServices = false
 
     private fun loadConnections(serviceRecords: MutableList<ConnectionRecord>, fieldName: String) {

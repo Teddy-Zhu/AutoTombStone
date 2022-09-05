@@ -23,32 +23,24 @@ class ActivityManagerService(
         const val MAIN_USER = 0
     }
 
-    val processList: ProcessList;
-    val context: Context;
-    public val activeServices: ActiveServices;
-
-    init {
-        processList = ProcessList(
-            activityManagerService.javaClass
-                .field {
-                    superClass()
-                    name = FieldEnum.mProcessListField
-                }.get(activityManagerService).cast<Any>()!!
-        )
-
-        activeServices = ActiveServices(
-            activityManagerService.javaClass
-                .field {
-                    superClass()
-                    name = FieldEnum.mServicesField
-                }.get(activityManagerService).cast<Any>()!!
-        )
-        context = activityManagerService.javaClass.field {
-            name = FieldEnum.mContextField
-            superClass()
-        }.get(activityManagerService).cast<Context>()!!
-
-    }
+    val processList: ProcessList = ProcessList(
+        activityManagerService.javaClass
+            .field {
+                superClass()
+                name = FieldEnum.mProcessListField
+            }.get(activityManagerService).cast<Any>()!!
+    );
+    val context: Context = activityManagerService.javaClass.field {
+        name = FieldEnum.mContextField
+        superClass()
+    }.get(activityManagerService).cast<Context>()!!;
+    public val activeServices: ActiveServices = ActiveServices(
+        activityManagerService.javaClass
+            .field {
+                superClass()
+                name = FieldEnum.mServicesField
+            }.get(activityManagerService).cast<Any>()!!
+    );
 
 
     fun isAppForeground(uid: Int): Boolean {

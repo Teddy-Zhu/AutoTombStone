@@ -107,7 +107,7 @@ class TileHook : YukiBaseHooker() {
                                     "[${pkgName}] click tile called unfreeze ",
                                     getAtsService(context)!!
                                 )
-                                getAtsService(context)?.unControlSync(pkgName)
+                                getAtsService(context)?.unControl(pkgName)
                             } else {
                                 atsLogDApp("[${pkgName}] click tile", getAtsService(context)!!)
                             }

@@ -6,6 +6,10 @@ import android.os.Binder
 import android.os.UserHandle
 import com.highcapable.yukihookapi.hook.factory.field
 
+/**
+ * TODO removed ?
+ * for miui
+ */
 class ContextProxy(base: Context?, private val tag: String) : ContextWrapper(base) {
     private val PER_USER_RANGE = UserHandle::class.java.field {
         name = "PER_USER_RANGE"
