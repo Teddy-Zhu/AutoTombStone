@@ -353,6 +353,7 @@ class AppStateChangeExecutor(
     //////////
 
 
+    @SuppressLint("InlinedApi")
     fun onPauseNew(
         packageName: String,
         doubleCheckStatus: Boolean,
@@ -404,10 +405,26 @@ class AppStateChangeExecutor(
                     withTime ?: System.currentTimeMillis()
             }
 
-            if (makeIdle && !isWhiteApp) {
-                makePackageIdle(packageName)
-                setAppIdle(packageName, true)
-            }
+//            if (makeIdle && !isWhiteApp) {
+//
+//                usm.setAppStandbyBucket(
+//                    packageName,
+//                    UsageStatsManager.STANDBY_BUCKET_RESTRICTED,
+//                    Binder.getCallingUid()
+//                );
+//
+//                makePackageIdle(packageName)
+//                setAppIdle(packageName, true)
+//
+//
+//            }
+
+            val uid = getAppUid(packageName)
+
+            atsLogD("$packageName get app uid:$uid")
+
+            val serviceMap = activityManagerService.activeServices.getServiceMap(uid)
+            atsLogD("$packageName get app servicemap:${serviceMap != null}")
 
             val delayFreezerProcesses = hashSetOf<ProcessRecord>()
             // 遍历目标进程
@@ -436,9 +453,9 @@ class AppStateChangeExecutor(
                                 AppOpsManager.MODE_IGNORED
                             )
                         }
-
                     }
                 }
+
 
                 val isInkillProcess = killProcessList.contains(processName)
                 // 如果白名单APP包含包名并且杀死进程不包含进程名就跳过
@@ -456,7 +473,7 @@ class AppStateChangeExecutor(
 
                     when (stopMode) {
                         1 -> {
-                            stopServiceLockedDirectMode(targetProcessRecord)
+                            stopServiceLockedDirectMode(targetProcessRecord, serviceMap)
                         }
                         2 -> {
                             stopServiceLockedApiMode(targetProcessRecord)
@@ -492,7 +509,7 @@ class AppStateChangeExecutor(
                             freezeProcess(delayFreezerProcesses)
                         },
                         prefs.name(ConfigConst.COMMON_NAME).get(ConfigConst.DELAY_FREEZE_TIME),
-                        TimeUnit.MILLISECONDS
+                        TimeUnit.SECONDS
                     )
                 }
 
@@ -500,6 +517,12 @@ class AppStateChangeExecutor(
 
 
             if (makeIdle && !isWhiteApp) {
+                usm.setAppStandbyBucket(
+                    packageName,
+                    UsageStatsManager.STANDBY_BUCKET_RESTRICTED,
+                    Binder.getCallingUid()
+                );
+
                 setAppIdle(packageName, true)
                 makePackageIdle(packageName)
             }
@@ -534,6 +557,7 @@ class AppStateChangeExecutor(
         }
     }
 
+    @SuppressLint("InlinedApi")
     private fun onResumeNew(
         packageName: String,
         doubleCheckStatus: Boolean,
@@ -562,6 +586,13 @@ class AppStateChangeExecutor(
             packageParam.apply {
                 whiteProcessList = queryWhiteProcessesList()
             }
+
+//            usm.setAppStandbyBucket(
+//                packageName,
+//                UsageStatsManager.STANDBY_BUCKET_RARE,
+//                Binder.getCallingUid()
+//            );
+
             // 遍历目标进程列表
             for (targetProcessRecord in targetProcessRecords) {
 //            atsLogD("process: $targetProcessRecord")
@@ -641,6 +672,11 @@ class AppStateChangeExecutor(
             )
     }
 
+    private fun getAppUid(packageName: String): Int {
+        val applicationInfo = getApplicationInfo(packageName) ?: return -1
+        return applicationInfo.uid
+    }
+
     /**
      * by system
      */
@@ -707,20 +743,22 @@ class AppStateChangeExecutor(
         }.get(activityManagerService.activeServices.activeServices).call(processRecord.uid)
     }
 
-    private fun stopServiceLockedDirectMode(processRecord: ProcessRecord) {
-        stopServiceLocked(processRecord, false)
+    private fun stopServiceLockedDirectMode(processRecord: ProcessRecord, serviceMap: Any) {
+        stopServiceLocked(processRecord, false, serviceMap)
     }
 
     private fun stopServiceLocked(
         processRecord: ProcessRecord,
         enqueueOomAdj: Boolean,
+        serviceMap: Any,
         setDelay: Boolean = false
     ) {
         for (processServiceRecord in processRecord.processServiceRecords) {
             for (mService in processServiceRecord.mServices) {
-                if (setDelay) {
-                    mService.setDelay(false)
-                }
+                mService.setDelay(setDelay)
+
+                activityManagerService.activeServices.ensureNotStartingBackground(serviceMap,mService.serviceRecord)
+
                 atsLogD("[${processRecord.processName}] try to stop ${mService.serviceInfo.name}")
                 if (useOriginMethod) {
                     activityManagerService.activeServices.activeServices.javaClass
@@ -860,6 +898,7 @@ class AppStateChangeExecutor(
                         if (interval in (recheckInterval + 1) until checkTime) {
                             atsLogD("[${freezedApp.key}] refreeze within ${interval}ms")
                             unControlAppWait(freezedApp.key)
+                            Thread.sleep(1000)
                             controlApp(freezedApp.key, freezedApp.value)
                         } else {
                             atsLogD("${freezedApp.key} ignored because time interval is ${interval}ms")
@@ -891,10 +930,6 @@ class AppStateChangeExecutor(
         acService = context.getSystemService(Context.ACTIVITY_SERVICE)
 
         atsLogD("appOpsService class: ${appOpsService.javaClass}")
-//        mUsageStatsService = context.getSystemService(Context.USAGE_STATS_SERVICE)
-
-        //        this.mUsageStatsService = context.getSystemService(context.USAGE_STATS_SERVICE);
-
 
 //        IUsageStatsManager
         try {

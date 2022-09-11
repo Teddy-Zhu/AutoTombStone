@@ -10,5 +10,6 @@ interface IUsageStatsManager  {
 
     boolean isAppInactive(String packageName, int userId, String callingPackage);
     void setAppInactive(String packageName, boolean inactive, int userId);
-
+    int getAppStandbyBucket(String packageName, String callingPackage, int userId);
+    void setAppStandbyBucket(String packageName, int bucket, int userId);
 }
